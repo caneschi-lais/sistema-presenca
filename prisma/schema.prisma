@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  perfil    String   // 'ALUNO', 'PROFESSOR'
+  ra        String?  @unique // Apenas para alunos
+  logs      AttendanceLog[]
+}
+
+model Turma {
+  id            String     @id @default(uuid())
+  nome          String
+  latitude      Float      // Centro da sala (Geofence)
+  longitude     Float
+  raioMetros    Int        @default(20)
+  logs          AttendanceLog[]
+}
+
+model AttendanceLog {
+  id          String   @id @default(uuid())
+  dataHora    DateTime @default(now())
+  latitude    Float    // Onde o aluno estava
+  longitude   Float
+  statusSiga  String   @default("PENDENTE") // PENDENTE, SINCRONIZADO, ERRO
+  dataExclusao DateTime // Para LGPD
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  turmaId     String
+  turma       Turma    @relation(fields: [turmaId], references: [id])
+}
