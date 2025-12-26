@@ -3,6 +3,9 @@ import Login from './pages/Login';
 import StudentHome from './pages/StudentHome';
 import TeacherHome from './pages/TeacherHome';
 import CoordHome from './pages/CoordHome';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import History from './pages/History';
 
 function App() {
   return (
@@ -12,12 +15,12 @@ function App() {
         <Route path="/aluno" element={<StudentHome />} />
         <Route path="/professor" element={<TeacherHome />} />
         <Route path="/coordenador" element={<CoordHome />} />
-        
-        {/* Qualquer rota desconhecida volta para o login */}
+        <Route path="/perfil" element={<Profile />} />
+        <Route path="/configuracoes" element={<Settings />} />
+        <Route path="/historico" element={<History />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
 export default App;

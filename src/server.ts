@@ -185,6 +185,29 @@ app.get('/aluno/:id/dashboard', async (req: any, reply) => {
   return dashboardData;
 });
 
+// Rota: Histórico Completo do Aluno
+app.get('/aluno/:id/historico', async (req: any, reply) => {
+  const { id } = req.params;
+  
+  const logs = await prisma.attendanceLog.findMany({
+    where: { userId: id },
+    include: { 
+      turma: {
+        select: { nome: true } // Só precisamos do nome da matéria
+      } 
+    },
+    orderBy: { dataHora: 'desc' } // Mais recentes primeiro
+  });
+
+  return logs.map(log => ({
+    id: log.id,
+    disciplina: log.turma.nome,
+    data: log.dataHora,
+    status: log.statusSiga,
+    deviceId: log.deviceId // Para mostrar se foi seguro
+  }));
+});
+
 // Rota: Turmas do Professor
 app.get('/professor/:id/turmas', async (req: any, reply) => {
   const { id } = req.params;
@@ -367,6 +390,24 @@ app.get('/coordenador/analytics', async (req, reply) => {
     ],
     insights
   };
+});
+
+// Rota para Atualizar Perfil
+app.put('/usuarios/:id', async (req: any, reply) => {
+  const { id } = req.params;
+  const { nome, email, senha } = req.body;
+
+  try {
+    const usuarioAtualizado = await prisma.user.update({
+      where: { id },
+      data: { nome, email, senha }
+    });
+
+    return usuarioAtualizado;
+  } catch (error) {
+    console.error(error);
+    return reply.status(500).send({ error: "Erro ao atualizar perfil." });
+  }
 });
 
 // Iniciar o servidor

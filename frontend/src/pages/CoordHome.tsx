@@ -70,17 +70,56 @@ export default function CoordHome() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
-      {/* Navbar */}
-      <div className="navbar bg-white shadow-sm px-6 border-b border-primary/20">
-        <div className="flex-1">
-          <img src="/logo.png" className="h-10 mr-2" />
-          <span className="font-bold text-xl text-primary">Geo<span className="text-success">Class</span> | Gestão</span>
+      {/* --- NOVA NAVBAR MODERNA (COORDENADOR) --- */}
+<div className="navbar bg-gradient-to-r from-primary to-[#0077b6] text-primary-content shadow-lg px-4 sm:px-8">
+  
+  {/* LADO ESQUERDO: Logo e Título */}
+  <div className="flex-1 flex items-center gap-3">
+    {/* Adicionei um filtro brilho/contraste na logo para ela destacar no fundo azul */}
+    <img src="/logo.png" className="h-10 w-auto" alt="GeoClass Logo" />
+    <div>
+      <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+        GeoClass
+        {/* Badge do módulo */}
+        <span className="badge badge-secondary text-white font-bold border-none bg-secondary/90">Gestão</span>
+      </h1>
+    </div>
+  </div>
+
+  {/* LADO DIREITO: Perfil do Usuário */}
+  <div className="flex-none gap-4">
+    
+    {/* Info de Texto (Escondido em mobile 'hidden sm:block') */}
+    <div className="hidden sm:block text-right leading-tight">
+    </div>
+
+    {/* DROPDOWN DO AVATAR */}
+    <div className="dropdown dropdown-end">
+      {/* O botão que abre o menu é o próprio avatar */}
+      <label tabIndex={0} className="btn btn-ghost btn-circle avatar hover:ring-2 hover:ring-secondary transition-all">
+        <div className="w-11 rounded-full ring ring-secondary ring-offset-base-100 ring-offset-2">
+          {/* Se tiver foto no futuro, usa img. Por enquanto, placeholder com inicial */}
+          <div className="bg-primary-focus text-white w-full h-full flex items-center justify-center font-bold text-lg">
+            {user.nome?.charAt(0)}
+          </div>
         </div>
-        <div className="flex-none gap-3">
-          <p className="text-sm font-bold text-gray-700 hidden sm:block">Coord. {user.nome}</p>
-          <button onClick={handleLogout} className="btn btn-ghost btn-circle text-error" title="Sair"><LogOut size={20}/></button>
-        </div>
-      </div>
+      </label>
+      
+      {/* O Menu que abre ao clicar */}
+      <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-base-content">
+        <li className="menu-title sm:hidden">
+          <span>Logado como {user.nome}</span>
+        </li>
+        <li><a onClick={() => navigate('/perfil')} className="justify-between">Meu Perfil</a></li>
+        <li><a onClick={() => navigate('/configuracoes')}>Configurações</a></li>
+        <div className="divider my-0"></div>
+        {/* Botão de Sair em vermelho */}
+        <li><button onClick={handleLogout} className="text-error font-bold hover:bg-error/10">Sair da Conta</button></li>
+      </ul>
+    </div>
+  </div>
+</div>
+{/* --- FIM DA NOVA NAVBAR --- */}
 
       <div className="container mx-auto px-4 mt-8">
         

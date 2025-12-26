@@ -106,20 +106,44 @@ export default function StudentHome() {
   // Apenas certifique-se de manter o return do passo anterior (StudentHome)
   return (
     <div className="min-h-screen bg-base-200 pb-10">
-      {/* ... (Cabeçalho igual) ... */}
-      <div className="navbar bg-base-100 shadow-md px-6">
-        <div className="flex-1"><img src="/logo.png" className="h-10 mr-2" /></div>
-        <div className="flex-none gap-2">
-            <div className="text-right mr-2 hidden sm:block">
-                <p className="font-bold text-sm">{user.nome}</p>
-                <p className="text-xs text-gray-500">RA: {user.ra}</p>
-            </div>
-            <div className="avatar placeholder">
-                <div className="bg-neutral text-neutral-content rounded-full w-10"><span>{user.nome?.charAt(0)}</span></div>
-            </div>
-            <button onClick={handleLogout} className="btn btn-ghost btn-circle text-error ml-2"><LogOut size={20} /></button>
+     {/* --- NOVA NAVBAR MODERNA (ALUNO) --- */}
+<div className="navbar bg-gradient-to-r from-primary to-[#0077b6] text-primary-content shadow-lg px-4 sm:px-8">
+  <div className="flex-1 flex items-center gap-3">
+    <img src="/logo.png" className="h-10 w-auto" alt="GeoClass Logo" />
+    <div>
+      <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+        GeoClass
+        {/* Usei uma cor neutra para o aluno para não chamar tanta atenção */}
+        <span className="badge badge-ghost text-primary-content font-bold bg-white/20 border-none">Aluno</span>
+      </h1>
+    </div>
+  </div>
+
+  <div className="flex-none gap-4">
+    <div className="hidden sm:block text-right leading-tight">
+    </div>
+
+    <div className="dropdown dropdown-end">
+      {/* Usei um anel branco (ring-white) para o aluno */}
+      <label tabIndex={0} className="btn btn-ghost btn-circle avatar hover:ring-2 hover:ring-white transition-all">
+        <div className="w-11 rounded-full ring ring-white ring-opacity-50 ring-offset-base-100 ring-offset-2">
+          <div className="bg-primary-focus text-white w-full h-full flex items-center justify-center font-bold text-lg">
+            {user.nome?.charAt(0)}
+          </div>
         </div>
-      </div>
+      </label>
+      <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-base-content">
+        <li className="menu-title sm:hidden"><span>RA: {user.ra}</span></li>
+        <li><a onClick={() => navigate('/perfil')} className="justify-between">Meu Perfil</a></li>
+        <li><a onClick={() => navigate('/historico')} className="justify-between">Histórico de Presenças</a></li>
+        <li><a onClick={() => navigate('/configuracoes')}>Configurações</a></li>
+        <div className="divider my-0"></div>
+        <li><button onClick={handleLogout} className="text-error font-bold hover:bg-error/10">Sair da Conta</button></li>
+      </ul>
+    </div>
+  </div>
+</div>
+{/* --- FIM DA NOVA NAVBAR --- */}
 
       <div className="container mx-auto px-4 mt-8">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2"><BookOpen /> Minhas Matérias</h2>
