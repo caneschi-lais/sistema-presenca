@@ -12,28 +12,38 @@ model User {
   nome      String
   email     String   @unique
   senha     String
-  perfil    String   // 'ALUNO', 'PROFESSOR'
-  ra        String?  @unique // Apenas para alunos
+  perfil    String
+  ra        String?  @unique
+  
   logs      AttendanceLog[]
+  turmas    Turma[]  @relation("Matriculas") // Turmas que ele estuda
+  turmasLecionadas Turma[] @relation("Professor") // NOVO: Turmas que ele ensina
 }
 
 model Turma {
   id            String     @id @default(uuid())
   nome          String
-  latitude      Float      // Centro da sala (Geofence)
+  latitude      Float
   longitude     Float
   raioMetros    Int        @default(20)
+  totalAulas    Int        @default(20)
+  
   logs          AttendanceLog[]
+  alunos        User[]     @relation("Matriculas")
+  
+  professorId   String?    // NOVO: ID do Professor
+  professor     User?      @relation("Professor", fields: [professorId], references: [id]) // NOVO
 }
 
+// O model AttendanceLog continua igual, não precisa mexer.
 model AttendanceLog {
   id          String   @id @default(uuid())
   dataHora    DateTime @default(now())
-  latitude    Float    // Onde o aluno estava
+  latitude    Float
   longitude   Float
-  statusSiga  String   @default("PENDENTE") // PENDENTE, SINCRONIZADO, ERRO
-  dataExclusao DateTime // Para LGPD
-
+  statusSiga  String   @default("PENDENTE")
+  dataExclusao DateTime
+  
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   turmaId     String

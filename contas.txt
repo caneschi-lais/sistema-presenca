@@ -1,0 +1,8 @@
+aluno@fatec.sp.gov.br
+senha: 123
+
+prof@fatec.sp.gov.br
+senha: 123
+
+coord@fatec.sp.gov.br
+senha: 123

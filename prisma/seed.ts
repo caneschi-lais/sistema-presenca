@@ -1,49 +1,77 @@
-// prisma/seed.ts
 import { PrismaClient } from '@prisma/client'
-
 const prisma = new PrismaClient()
 
 async function main() {
-  // 1. Limpar banco antigo (opcional, para evitar duplicidade em testes)
-  // await prisma.attendanceLog.deleteMany({})
-  // await prisma.turma.deleteMany({})
-  // await prisma.user.deleteMany({})
+  console.log("🧹 Limpando banco de dados antigo...")
+  
+  // 1. Limpar dados na ordem correta (para não dar erro de vínculo/Foreign Key)
+  await prisma.attendanceLog.deleteMany({}) 
+  await prisma.user.deleteMany({})
+  await prisma.turma.deleteMany({})
 
-  console.log("🌱 Iniciando o plantio de dados (Seed)...")
+  console.log("🌱 Criando novos usuários...")
 
-  // 2. Criar um Aluno para você usar no login
+  // 2. ALUNO
   const aluno = await prisma.user.create({
     data: {
-      nome: 'Aluno Teste',
+      nome: 'Aluno Exemplo',
       email: 'aluno@fatec.sp.gov.br',
-      senha: '123', // Em produção usaríamos hash, mas para teste ok
+      senha: '123',
       perfil: 'ALUNO',
-      ra: '123456' // Guarde este RA
+      ra: '123456'
     }
   })
 
-  // 3. Criar a Turma usando as coordenadas DA SUA CASA
-  // (Senão o teste vai falhar dizendo que você está longe)
+  // 3. PROFESSOR
+  const prof = await prisma.user.create({
+    data: {
+      nome: 'Prof. Michel',
+      email: 'prof@fatec.sp.gov.br',
+      senha: '123',
+      perfil: 'PROFESSOR'
+    }
+  })
+
+  // 4. COORDENADOR
+  const coord = await prisma.user.create({
+    data: {
+      nome: 'Coord. Archimedes',
+      email: 'coord@fatec.sp.gov.br',
+      senha: '123',
+      perfil: 'COORDENADOR'
+    }
+  })
+
+  // 4. TURMA (Com matrícula do aluno)
   const turma = await prisma.turma.create({
     data: {
-      nome: 'Laboratório de Hardware (Teste)',
-      // COLOQUE SUAS COORDENADAS AQUI:
-      latitude: -23.096923477335636,  
-      longitude: -47.2592022465833, 
-      raioMetros: 50 // 50 metros de margem de erro
+      nome: 'Laboratório de Hardware',
+      latitude: -23.096923, // <--- SUAS COORDENADAS
+      longitude: -47.259202, // <--- SUAS COORDENADAS
+      raioMetros: 50,
+      totalAulas: 40,
+      alunos: { connect: { id: aluno.id } }, // Matricula o aluno
+      professor: { connect: { id: prof.id } } // <--- VINCULA O PROFESSOR
+    }
+  })
+  
+  // Vamos criar umas presenças falsas para testar o gráfico
+  await prisma.attendanceLog.create({
+    data: {
+        userId: aluno.id,
+        turmaId: turma.id,
+        latitude: -23.00, longitude: -47.00,
+        statusSiga: 'SINCRONIZADO',
+        dataExclusao: new Date()
     }
   })
 
-  console.log(`✅ Dados criados!`)
-  console.log(`🆔 ID do Aluno: ${aluno.id}`)
-  console.log(`🆔 ID da Turma: ${turma.id}`)
-  console.log(`📍 Use esses IDs no seu Front-end/Postman para testar.`)
+  console.log(`✅ Dados atualizados com Matrícula!`)
+  console.log(`✅ Dados recriados com sucesso!`)
+  console.log(`👨‍🎓 Aluno ID: ${aluno.id}`)
+  console.log(`🏫 Turma ID: ${turma.id}`)
 }
 
 main()
   .then(async () => { await prisma.$disconnect() })
-  .catch(async (e) => { 
-    console.error(e)
-    await prisma.$disconnect()
-    process.exit(1) 
-  })
+  .catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1) })
