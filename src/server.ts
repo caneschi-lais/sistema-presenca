@@ -37,51 +37,96 @@ app.post('/login', async (req: any, reply) => {
 });
 
 // Rota POST: O app manda JSON com { alunoId, turmaId, lat, long }
+// Rota Inteligente: Valida Distância E Horário
 app.post('/registrar-presenca', async (req: any, reply) => {
   try {
-    const { alunoId, turmaId, lat, long } = req.body;
+const { alunoId, turmaId, lat, long, deviceId } = req.body; // Recebendo deviceId
 
-    console.log(`📡 Recebendo solicitação... Lat: ${lat}, Long: ${long}`);
-
-    // 1. Buscar a Turma no banco para saber onde ela fica
+    // 1. Busca Turma ... (código existente)
     const turma = await prisma.turma.findUnique({ where: { id: turmaId } });
+    if (!turma) return reply.status(404).send({ error: 'Turma não encontrada' });
+
+    // --- NOVA VALIDAÇÃO DE HORÁRIO ---
+    const agora = new Date();
     
-    if (!turma) {
-      return reply.status(404).send({ error: 'Turma não encontrada' });
+    // A. Verifica o Dia da Semana
+    if (agora.getDay() !== turma.diaSemana) {
+      return reply.status(400).send({ error: 'Não há aula desta matéria hoje.' });
     }
 
-    // 2. Calcular distância
+    // B. Verifica o Horário (Janela de 15 minutos)
+    const [horaAula, minAula] = turma.horarioInicio.split(':').map(Number);
+    const dataInicioAula = new Date();
+    dataInicioAula.setHours(horaAula, minAula, 0, 0);
+
+    const diferencaMinutos = (agora.getTime() - dataInicioAula.getTime()) / 1000 / 60;
+
+    // Se tentar antes da aula começar (ex: 10 min antes)
+    if (diferencaMinutos < -10) {
+      return reply.status(400).send({ error: 'A aula ainda não começou.' });
+    }
+
+    // A REGRA DE OURO: Se passou de 15 minutos
+    if (diferencaMinutos > 15) {
+      // Aqui poderíamos salvar como "FALTA" automaticamente, 
+      // mas por enquanto vamos bloquear o registro.
+      return reply.status(400).send({ 
+        error: 'Você chegou atrasado (>15min). Presença não permitida.',
+        atraso: true // Flag para o frontend saber que foi atraso
+      });
+    }
+    // ----------------------------------
+
+    if (deviceId) {
+      // Define janela da aula (ex: últimas 2 horas)
+      const janelaTempo = new Date();
+      janelaTempo.setHours(janelaTempo.getHours() - 2);
+
+      const usoSuspeito = await prisma.attendanceLog.findFirst({
+        where: {
+          turmaId: turmaId,        // Na mesma turma
+          deviceId: deviceId,      // Com o mesmo celular
+          userId: { not: alunoId }, // Mas usuário DIFERENTE
+          dataHora: { gte: janelaTempo } // Recentemente
+        }
+      });
+
+      if (usoSuspeito) {
+        console.log(`🚨 FRAUDE DETECTADA! Device ${deviceId} tentou marcar para ${alunoId} mas já marcou para outro.`);
+        return reply.status(403).send({ 
+          error: 'Este dispositivo já registrou presença para outro aluno nesta aula.',
+          fraude: true 
+        });
+      }
+    }
+
+    // 2. Validação de Distância (GeoFencing)
     const distancia = getDistanceFromLatLonInMeters(lat, long, turma.latitude, turma.longitude);
-    console.log(`📏 Distância calculada: ${distancia.toFixed(2)} metros. Limite: ${turma.raioMetros}m`);
     
-    // 3. Validar se está dentro da cerca
     if (distancia > turma.raioMetros) {
       return reply.status(400).send({ 
-        error: 'Fora do raio permitido', 
-        distancia: `${distancia.toFixed(2)}m`, 
-        limite: `${turma.raioMetros}m`,
-        mensagem: 'Você está muito longe da sala de aula.'
+        error: 'Você está muito longe da sala de aula.',
+        distancia: distancia.toFixed(2),
+        limite: turma.raioMetros
       });
     }
 
-    // 4. Salvar Presença (Com regra de LGPD: expira em 6 meses)
     const log = await prisma.attendanceLog.create({
       data: {
         userId: alunoId,
         turmaId: turmaId,
         latitude: lat,
         longitude: long,
-        statusSiga: 'PENDENTE', // Vai para a fila do Robô
-        dataExclusao: addMonths(new Date(), 6) // Daqui a 6 meses será deletado
+        deviceId: deviceId, // <--- SALVANDO O ID AQUI
+        dataExclusao: new Date()
       }
     });
 
-    console.log(`✅ Presença salva! ID: ${log.id}`);
-    return { success: true, logId: log.id, message: 'Presença registrada para processamento.' };
+    return { success: true, logId: log.id, mensagem: 'Presença garantida!' };
 
   } catch (error) {
     console.error(error);
-    return reply.status(500).send({ error: 'Erro interno no servidor' });
+    return reply.status(500).send({ error: "Erro interno no servidor" });
   }
 });
 
@@ -234,17 +279,21 @@ app.get('/lista-professores', async () => {
 
 // 3. Cadastrar Nova Turma (Importante para definir o Geofence)
 app.post('/turmas', async (req: any, reply) => {
-  const { nome, professorId, lat, long, totalAulas } = req.body;
+  // Agora recebemos diaSemana e horarioInicio
+  const { nome, professorId, lat, long, totalAulas, diaSemana, horarioInicio } = req.body;
   
   try {
     const novaTurma = await prisma.turma.create({
       data: {
         nome,
-        professorId, // Vincula ao professor
+        professorId,
         latitude: parseFloat(lat),
         longitude: parseFloat(long),
         totalAulas: parseInt(totalAulas),
-        raioMetros: 50 // Padrão fixo por enquanto
+        raioMetros: 50,
+        // Novos campos obrigatórios
+        diaSemana: parseInt(diaSemana), 
+        horarioInicio: horarioInicio 
       }
     });
     return novaTurma;
@@ -252,6 +301,72 @@ app.post('/turmas', async (req: any, reply) => {
     console.error(e);
     return reply.status(500).send({ error: "Erro ao criar turma" });
   }
+});
+
+// --- ROTA DE INTELIGÊNCIA DE DADOS ---
+app.get('/coordenador/analytics', async (req, reply) => {
+  // 1. Frequência por Dia da Semana (0=Dom, 1=Seg...)
+  // Vamos contar quantas faltas/presenças ocorreram em cada dia
+  const logs = await prisma.attendanceLog.findMany({
+    include: { turma: true }
+  });
+
+  const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const frequenciaPorDia = [0, 0, 0, 0, 0, 0, 0];
+
+  logs.forEach(log => {
+    const dia = new Date(log.dataHora).getDay();
+    frequenciaPorDia[dia]++;
+  });
+
+  // Formata para o gráfico
+  const graficoDias = diasSemana.map((dia, index) => ({
+    name: dia,
+    presencas: frequenciaPorDia[index]
+  }));
+
+  // 2. Análise de Pontualidade (Chegou nos primeiros 5min ou no sufoco?)
+  let pontuais = 0; // Chegaram em até 5 min
+  let atrasados = 0; // Chegaram entre 5 e 15 min
+
+  logs.forEach(log => {
+    // Pega a hora que o aluno chegou
+    const horaLog = new Date(log.dataHora);
+    // Pega a hora que a aula começava (Baseado no cadastro da turma)
+    const [h, m] = log.turma.horarioInicio.split(':').map(Number);
+    const horaAula = new Date(log.dataHora);
+    horaAula.setHours(h, m, 0, 0);
+
+    const diffMinutos = (horaLog.getTime() - horaAula.getTime()) / 1000 / 60;
+
+    if (diffMinutos <= 5) pontuais++;
+    else if (diffMinutos > 5) atrasados++;
+  });
+
+  // 3. Gerador de Insights (IA Simples)
+  const insights = [];
+  
+  // Insight de Sexta-feira
+  if (frequenciaPorDia[5] < frequenciaPorDia[1]) { // Se Sex tem menos que Seg
+    insights.push("📉 Baixa adesão detectada às sextas-feiras. Evite agendar avaliações importantes.");
+  }
+
+  // Insight de Pontualidade
+  const total = pontuais + atrasados;
+  if (total > 0 && (atrasados / total) > 0.3) { // Se 30% chega atrasado
+    insights.push("⚠️ 30% da turma chega após o início da aula. Considere tolerância ou reforço de horário.");
+  } else {
+    insights.push("✅ A pontualidade da turma está excelente. A maioria chega nos primeiros 5 minutos.");
+  }
+
+  return {
+    graficoDias,
+    graficoPontualidade: [
+      { name: 'Pontuais (<5min)', value: pontuais },
+      { name: 'No Limite (5-15min)', value: atrasados }
+    ],
+    insights
+  };
 });
 
 // Iniciar o servidor

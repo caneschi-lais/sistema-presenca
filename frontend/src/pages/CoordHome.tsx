@@ -1,39 +1,50 @@
 import { useState, useEffect } from 'react';
-// 1. Importe useNavigate e LogOut
 import { useNavigate } from 'react-router-dom';
-import { BarChart, AlertTriangle, PlusCircle, Save, Map, LogOut } from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, Legend 
+} from 'recharts';
+import { 
+  LayoutDashboard, AlertTriangle, PlusCircle, Save, Map, 
+  LogOut, Lightbulb, TrendingUp 
+} from 'lucide-react';
 
 export default function CoordHome() {
   const user = JSON.parse(localStorage.getItem('geoClassUser') || '{}');
-  const navigate = useNavigate(); // 2. Inicialize o hook de navegação
+  const navigate = useNavigate();
   
-  // ... (seus estados existentes: stats, loading, professores, novaTurma...)
-  // MANTENHA TODO O CÓDIGO DE ESTADOS E EFEITOS IGUAL
-
   const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [professores, setProfessores] = useState<any[]>([]);
   const [novaTurma, setNovaTurma] = useState({
-    nome: '', professorId: '', lat: '', long: '', totalAulas: 40
+    nome: '', professorId: '', lat: '', long: '', totalAulas: 40, diaSemana: '1', horarioInicio: '19:00'
   });
   const [msgForm, setMsgForm] = useState('');
 
-  useEffect(() => { carregarDashboard(); carregarProfessores(); }, []);
+  // Cores do Gráfico (Azul Primary e Verde Success)
+  const COLORS = ['#0056b3', '#00a96e']; 
 
-  const carregarDashboard = () => {
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  const carregarDados = () => {
+    // 1. Dados Gerais
     fetch('http://localhost:3000/coordenador/dashboard')
       .then(res => res.json())
-      .then(data => { setStats(data); setLoading(false); });
-  };
+      .then(setStats);
+    
+    // 2. Dados de Inteligência (Gráficos)
+    fetch('http://localhost:3000/coordenador/analytics')
+      .then(res => res.json())
+      .then(setAnalytics);
 
-  const carregarProfessores = () => {
     fetch('http://localhost:3000/lista-professores')
       .then(res => res.json())
-      .then(data => setProfessores(data));
+      .then(setProfessores);
   };
 
   const handleCriarTurma = async (e: React.FormEvent) => {
-    // ... (MANTENHA A LÓGICA DE CRIAR TURMA IGUAL)
     e.preventDefault();
     setMsgForm('Salvando...');
     try {
@@ -43,157 +54,162 @@ export default function CoordHome() {
         body: JSON.stringify(novaTurma)
       });
       if (res.ok) {
-        setMsgForm('✅ Turma criada com sucesso!');
-        setNovaTurma({ nome: '', professorId: '', lat: '', long: '', totalAulas: 40 });
-        carregarDashboard();
-      } else { setMsgForm('❌ Erro ao criar.'); }
-    } catch (error) { setMsgForm('❌ Erro de conexão.'); }
+        setMsgForm('✅ Turma criada!');
+        carregarDados();
+        setNovaTurma({...novaTurma, nome: ''});
+      } else setMsgForm('❌ Erro.');
+    } catch (e) { setMsgForm('❌ Erro Conexão.'); }
   };
 
-  // 3. FUNÇÃO DE LOGOUT
   const handleLogout = () => {
-    localStorage.removeItem('geoClassUser'); // Apaga o usuário
-    navigate('/'); // Manda de volta para o Login
+    localStorage.removeItem('geoClassUser');
+    navigate('/');
   };
 
-  if (loading) return <div className="p-10 text-center text-primary font-bold">Carregando GeoClass...</div>;
+  if (!stats || !analytics) return <div className="p-10 text-center text-primary font-bold">Carregando Inteligência...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
+      {/* Navbar */}
       <div className="navbar bg-white shadow-sm px-6 border-b border-primary/20">
         <div className="flex-1">
           <img src="/logo.png" className="h-10 mr-2" />
-          <span className="font-bold text-xl text-primary">
-            Geo<span className="text-success">Class</span> 
-            <span className="text-gray-400 font-normal text-sm ml-2">| Gestão Acadêmica</span>
-          </span>
+          <span className="font-bold text-xl text-primary">Geo<span className="text-success">Class</span> | Gestão</span>
         </div>
         <div className="flex-none gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="font-bold text-sm text-gray-700">{user.nome}</p>
-            <p className="text-xs text-success font-bold">Coordenador</p>
-          </div>
-          <div className="avatar placeholder">
-            <div className="bg-primary text-primary-content rounded-full w-10">
-              <span>{user.nome?.charAt(0)}</span>
-            </div>
-          </div>
-
-          {/* 4. BOTÃO DE SAIR */}
-          <button 
-            onClick={handleLogout} 
-            className="btn btn-ghost btn-circle text-error tooltip tooltip-bottom" 
-            data-tip="Sair"
-          >
-            <LogOut size={20} />
-          </button>
-
+          <p className="text-sm font-bold text-gray-700 hidden sm:block">Coord. {user.nome}</p>
+          <button onClick={handleLogout} className="btn btn-ghost btn-circle text-error" title="Sair"><LogOut size={20}/></button>
         </div>
       </div>
 
-      {/* ... (O RESTO DO CONTEÚDO DA PÁGINA CONTINUA IGUAL) ... */}
       <div className="container mx-auto px-4 mt-8">
-         {/* Cole aqui o resto do código da tela (KPI Cards, Formulários etc) que você já tem */}
-         {/* Para economizar espaço, não repeti os cards aqui, mas eles devem continuar lá */}
-         
-         {/* KPI CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="stats shadow bg-white border-b-4 border-primary">
-            <div className="stat">
-              <div className="stat-figure text-primary"><BarChart size={32}/></div>
-              <div className="stat-title">Total de Alunos</div>
-              <div className="stat-value text-primary">{stats.totalAlunos}</div>
-              <div className="stat-desc">Matriculados no sistema</div>
-            </div>
-          </div>
-          <div className="stats shadow bg-white border-b-4 border-success">
-            <div className="stat">
-              <div className="stat-figure text-success"><Map size={32}/></div>
-              <div className="stat-title">Turmas Monitoradas</div>
-              <div className="stat-value text-success">{stats.totalTurmas}</div>
-              <div className="stat-desc">Com geofencing ativo</div>
-            </div>
-          </div>
-          <div className="stats shadow bg-white border-b-4 border-error">
-            <div className="stat">
-              <div className="stat-figure text-error"><AlertTriangle size={32}/></div>
-              <div className="stat-title text-error">Risco de Evasão</div>
-              <div className="stat-value text-error">{stats.alunosEmRisco}</div>
-              <div className="stat-desc">Alunos com freq &lt; 75%</div>
-            </div>
+        
+        {/* 1. SEÇÃO DE INTELIGÊNCIA (INSIGHTS) */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+            <Lightbulb className="text-yellow-500" /> Insights da IA
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {analytics.insights.map((insight: string, idx: number) => (
+               <div key={idx} className="alert bg-white shadow-sm border-l-4 border-success">
+                 <div>
+                   <TrendingUp className="stroke-current flex-shrink-0 h-6 w-6 text-success" />
+                   <span className="text-gray-700 font-medium">{insight}</span>
+                 </div>
+               </div>
+             ))}
           </div>
         </div>
 
+        {/* 2. GRÁFICOS E ESTATÍSTICAS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            
+            {/* Gráfico de Barras: Adesão Semanal */}
+            <div className="card bg-white shadow-xl lg:col-span-2">
+              <div className="card-body">
+                <h3 className="card-title text-gray-700 text-sm">Frequência Semanal (Presenças Totais)</h3>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analytics.graficoDias}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="presencas" fill="#0056b3" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Gráfico de Pizza: Pontualidade */}
+            <div className="card bg-white shadow-xl">
+              <div className="card-body">
+                <h3 className="card-title text-gray-700 text-sm">Análise de Pontualidade</h3>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={analytics.graficoPontualidade}
+                        cx="50%" cy="50%"
+                        innerRadius={60} outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {analytics.graficoPontualidade.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend verticalAlign="bottom" height={36}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="text-center text-xs text-gray-400 mt-2">
+                  Baseado nos registros de hoje
+                </div>
+              </div>
+            </div>
+        </div>
+
+        {/* 3. OPERACIONAL (Tabela de Risco e Cadastro) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Radar de Evasão */}
           <div className="card bg-white shadow-xl border border-gray-100">
             <div className="card-body">
               <h3 className="card-title text-gray-700 mb-4 flex items-center gap-2">
                 <AlertTriangle className="text-error" /> Radar de Evasão
               </h3>
-              <div className="overflow-x-auto h-80">
+              <div className="overflow-x-auto h-64">
                 <table className="table table-compact w-full">
                   <thead>
-                    <tr><th>Aluno</th><th>Disciplina</th><th>Freq</th><th>Situação</th></tr>
+                    <tr><th>Aluno</th><th>Freq</th><th>Situação</th></tr>
                   </thead>
                   <tbody>
                     {stats.detalhesRisco.map((item: any, idx: number) => (
                       <tr key={idx}>
-                        <td><div className="font-bold text-gray-700">{item.nome}</div><div className="text-xs opacity-50">RA: {item.ra}</div></td>
-                        <td className="text-xs">{item.turma}</td>
+                        <td>{item.nome}</td>
                         <td className="font-bold text-error">{item.frequencia}%</td>
-                        <td><span className="badge badge-error badge-outline badge-xs">Crítico</span></td>
+                        <td><span className="badge badge-error badge-xs">Crítico</span></td>
                       </tr>
                     ))}
-                    {stats.detalhesRisco.length === 0 && (
-                      <tr><td colSpan={4} className="text-center py-10 text-success font-bold">Nenhum aluno em risco no momento! 👏</td></tr>
-                    )}
+                    {stats.detalhesRisco.length === 0 && <tr><td colSpan={3} className="text-center text-success">Nenhum risco detectado!</td></tr>}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
 
+          {/* Cadastro de Turma (Atualizado com Horário) */}
           <div className="card bg-white shadow-xl border border-gray-100">
             <div className="card-body">
-              <h3 className="card-title text-success mb-4 flex items-center gap-2">
-                <PlusCircle className="text-success" /> Cadastrar Nova Turma
+              <h3 className="card-title text-success mb-2 flex items-center gap-2">
+                <PlusCircle /> Nova Turma
               </h3>
-              <form onSubmit={handleCriarTurma} className="flex flex-col gap-3">
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Nome da Disciplina</span></label>
-                  <input type="text" placeholder="Ex: Algoritmos II" className="input input-bordered focus:input-success" 
-                    value={novaTurma.nome} onChange={e => setNovaTurma({...novaTurma, nome: e.target.value})} required />
-                </div>
-                <div className="form-control">
-                  <label className="label"><span className="label-text">Professor Responsável</span></label>
-                  <select className="select select-bordered focus:select-success" 
-                    value={novaTurma.professorId} onChange={e => setNovaTurma({...novaTurma, professorId: e.target.value})} required>
-                    <option value="">Selecione...</option>
-                    {professores.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="form-control">
-                    <label className="label"><span className="label-text">Latitude (Centro)</span></label>
-                    <input type="number" step="any" placeholder="-23.09..." className="input input-bordered focus:input-success" 
-                      value={novaTurma.lat} onChange={e => setNovaTurma({...novaTurma, lat: e.target.value})} required />
-                  </div>
-                  <div className="form-control">
-                    <label className="label"><span className="label-text">Longitude (Centro)</span></label>
-                    <input type="number" step="any" placeholder="-47.25..." className="input input-bordered focus:input-success" 
-                      value={novaTurma.long} onChange={e => setNovaTurma({...novaTurma, long: e.target.value})} required />
-                  </div>
-                </div>
-                <div className="text-xs text-gray-400 mt-1">* Dica: Use o Google Maps, clique com botão direito no local e copie as coordenadas.</div>
-                <button type="submit" className="btn btn-success text-white mt-4 gap-2 font-bold hover:scale-105 transition-transform">
-                  <Save size={18} /> Salvar Turma
+              <form onSubmit={handleCriarTurma} className="grid grid-cols-2 gap-3">
+                <input type="text" placeholder="Nome da Matéria" className="input input-bordered col-span-2 input-sm" 
+                  value={novaTurma.nome} onChange={e => setNovaTurma({...novaTurma, nome: e.target.value})} required />
+                
+                <select className="select select-bordered select-sm" value={novaTurma.professorId} onChange={e => setNovaTurma({...novaTurma, professorId: e.target.value})} required>
+                  <option value="">Professor...</option>
+                  {professores.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                </select>
+
+                <input type="time" className="input input-bordered input-sm" value={novaTurma.horarioInicio} onChange={e => setNovaTurma({...novaTurma, horarioInicio: e.target.value})} required />
+
+                <input type="number" placeholder="Lat" className="input input-bordered input-sm" value={novaTurma.lat} onChange={e => setNovaTurma({...novaTurma, lat: e.target.value})} required />
+                <input type="number" placeholder="Long" className="input input-bordered input-sm" value={novaTurma.long} onChange={e => setNovaTurma({...novaTurma, long: e.target.value})} required />
+
+                <button type="submit" className="btn btn-success btn-sm text-white col-span-2 gap-2">
+                  <Save size={16} /> Salvar Turma
                 </button>
-                {msgForm && <p className="text-center font-bold text-sm mt-2 text-primary">{msgForm}</p>}
               </form>
+              <p className="text-center text-xs text-primary mt-2">{msgForm}</p>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );

@@ -28,11 +28,15 @@ model Turma {
   raioMetros    Int        @default(20)
   totalAulas    Int        @default(20)
   
+  // NOVOS CAMPOS PARA CONTROLE DE TEMPO
+  diaSemana     Int        // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+  horarioInicio String     // Formato "HH:mm" (ex: "19:00")
+  
   logs          AttendanceLog[]
   alunos        User[]     @relation("Matriculas")
   
-  professorId   String?    // NOVO: ID do Professor
-  professor     User?      @relation("Professor", fields: [professorId], references: [id]) // NOVO
+  professorId   String?    
+  professor     User?      @relation("Professor", fields: [professorId], references: [id])
 }
 
 // O model AttendanceLog continua igual, não precisa mexer.
@@ -43,6 +47,9 @@ model AttendanceLog {
   longitude   Float
   statusSiga  String   @default("PENDENTE")
   dataExclusao DateTime
+  
+  // NOVO CAMPO DE SEGURANÇA
+  deviceId    String?  
   
   userId      String
   user        User     @relation(fields: [userId], references: [id])

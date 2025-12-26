@@ -1,21 +1,37 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // <--- FALTAVA ISSO
-import { MapPin, AlertTriangle, BookOpen, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, AlertTriangle, BookOpen, LogOut, Clock, Smartphone } from 'lucide-react'; // Add Smartphone icon
+import { toast } from 'react-toastify';
+// 1. Importar a biblioteca de segurança
+import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
 export default function StudentHome() {
   const user = JSON.parse(localStorage.getItem('geoClassUser') || '{}');
-  const navigate = useNavigate(); // <--- FALTAVA ISSO
+  const navigate = useNavigate();
   
   const [materias, setMaterias] = useState<any[]>([]);
-  const [statusRegistro, setStatusRegistro] = useState('idle');
-  const [msgRegistro, setMsgRegistro] = useState('');
+  const [loading, setLoading] = useState(false);
+  // 2. Estado para guardar a digital do celular
+  const [deviceId, setDeviceId] = useState('');
 
   useEffect(() => {
     if (!user.id) return;
+    
+    // Carrega Dashboard
     fetch(`http://localhost:3000/aluno/${user.id}/dashboard`)
       .then(res => res.json())
       .then(data => setMaterias(data))
-      .catch(err => console.error("Erro ao carregar dashboard", err));
+      .catch(err => console.error("Erro dashboard", err));
+
+    // 3. Gera a Digital do Dispositivo (Fingerprint)
+    const carregarSeguranca = async () => {
+      const fp = await FingerprintJS.load();
+      const { visitorId } = await fp.get();
+      setDeviceId(visitorId);
+      console.log("Device ID:", visitorId); // Para você ver no console
+    };
+    carregarSeguranca();
+
   }, [user.id]);
 
   const handleLogout = () => {
@@ -24,11 +40,12 @@ export default function StudentHome() {
   };
 
   const registrarPresenca = (turmaId: string) => {
-    setStatusRegistro('loading');
-    setMsgRegistro('Verificando GPS...');
+    setLoading(true);
+    const toastId = toast.loading("Validando dispositivo e local...");
 
     if (!navigator.geolocation) {
-      setMsgRegistro('GPS não suportado.');
+      toast.update(toastId, { render: "GPS desligado.", type: "error", isLoading: false, autoClose: 3000 });
+      setLoading(false);
       return;
     }
 
@@ -42,70 +59,80 @@ export default function StudentHome() {
               alunoId: user.id,
               turmaId: turmaId,
               lat: pos.coords.latitude,
-              long: pos.coords.longitude
+              long: pos.coords.longitude,
+              deviceId: deviceId // 4. Envia o ID do celular
             })
           });
           
           const data = await response.json();
+
           if (response.ok) {
-            setStatusRegistro('success');
-            setMsgRegistro('Presença Confirmada! 🎉');
-            setTimeout(() => window.location.reload(), 1500);
+            toast.update(toastId, { 
+              render: "Presença Registrada! 🎉", type: "success", isLoading: false, autoClose: 3000 
+            });
+            setTimeout(() => window.location.reload(), 2000);
           } else {
-            setStatusRegistro('error');
-            setMsgRegistro(data.error || 'Erro ao registrar.');
+            // Tratamento de Erros Específicos
+            if (data.fraude) {
+              toast.update(toastId, { 
+                render: "⛔ BLOQUEIO DE SEGURANÇA: Este aparelho já registrou presença para outro aluno.", 
+                type: "error", isLoading: false, autoClose: 6000 
+              });
+            } else if (data.atraso) {
+              toast.update(toastId, { 
+                render: "Falta por Atraso (>15min).", type: "error", isLoading: false, autoClose: 5000 
+              });
+            } else {
+              toast.update(toastId, { 
+                render: data.error || "Erro.", type: "warning", isLoading: false, autoClose: 4000 
+              });
+            }
           }
         } catch (e) {
-          setStatusRegistro('error');
-          setMsgRegistro('Erro de conexão.');
+          toast.update(toastId, { render: "Erro de conexão.", type: "error", isLoading: false, autoClose: 3000 });
+        } finally {
+          setLoading(false);
         }
       },
-      () => {
-        setStatusRegistro('error');
-        setMsgRegistro('Permita o acesso ao GPS.');
-      }
+      (err) => {
+        toast.update(toastId, { render: "Erro de Permissão GPS.", type: "error", isLoading: false, autoClose: 3000 });
+        setLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
+  // ... O return (JSX) continua igual ao anterior ...
+  // Apenas certifique-se de manter o return do passo anterior (StudentHome)
   return (
     <div className="min-h-screen bg-base-200 pb-10">
+      {/* ... (Cabeçalho igual) ... */}
       <div className="navbar bg-base-100 shadow-md px-6">
-        <div className="flex-1">
-          <img src="/logo.png" className="h-10 mr-2" />
-        </div>
+        <div className="flex-1"><img src="/logo.png" className="h-10 mr-2" /></div>
         <div className="flex-none gap-2">
-          <div className="text-right mr-2 hidden sm:block">
-            <p className="font-bold text-sm">{user.nome}</p>
-            <p className="text-xs text-gray-500">RA: {user.ra}</p>
-          </div>
-          <div className="avatar placeholder">
-            <div className="bg-neutral text-neutral-content rounded-full w-10">
-              <span>{user.nome?.charAt(0)}</span>
+            <div className="text-right mr-2 hidden sm:block">
+                <p className="font-bold text-sm">{user.nome}</p>
+                <p className="text-xs text-gray-500">RA: {user.ra}</p>
             </div>
-          </div>
-          
-          {/* Botão Sair */}
-          <button 
-            onClick={handleLogout} 
-            className="btn btn-ghost btn-circle text-error ml-2 tooltip tooltip-bottom" 
-            data-tip="Sair"
-          >
-            <LogOut size={20} />
-          </button>
+            <div className="avatar placeholder">
+                <div className="bg-neutral text-neutral-content rounded-full w-10"><span>{user.nome?.charAt(0)}</span></div>
+            </div>
+            <button onClick={handleLogout} className="btn btn-ghost btn-circle text-error ml-2"><LogOut size={20} /></button>
         </div>
       </div>
 
       <div className="container mx-auto px-4 mt-8">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <BookOpen /> Minhas Matérias
-        </h2>
-
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2"><BookOpen /> Minhas Matérias</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {materias.map((materia) => (
             <div key={materia.turmaId} className="card bg-base-100 shadow-xl border border-gray-100">
               <div className="card-body">
-                <h3 className="card-title text-primary">{materia.nome}</h3>
+                <div className="flex justify-between items-start">
+                    <h3 className="card-title text-primary">{materia.nome}</h3>
+                    {deviceId && <div className="badge badge-success badge-outline badge-xs gap-1"><Smartphone size={10}/> Seguro</div>}
+                </div>
                 <div className="divider my-1"></div>
+                {/* ... (Resto do card igual: alertas, progresso, botão) ... */}
                 <div className="flex justify-between text-sm text-gray-600 mb-2">
                   <span>Presenças: <strong>{materia.presencas}</strong></span>
                   <span>Faltas: <strong>{materia.faltas}</strong></span>
@@ -113,43 +140,21 @@ export default function StudentHome() {
                 <div className="w-full">
                   <div className="flex justify-between mb-1">
                     <span className="text-xs font-bold">Frequência</span>
-                    <span className={`text-xs font-bold ${materia.frequencia < 75 ? 'text-error' : 'text-success'}`}>
-                      {materia.frequencia}%
-                    </span>
+                    <span className={`text-xs font-bold ${materia.frequencia < 75 ? 'text-error' : 'text-success'}`}>{materia.frequencia}%</span>
                   </div>
-                  <progress 
-                    className={`progress w-full h-3 ${materia.frequencia < 75 ? 'progress-error' : 'progress-success'}`} 
-                    value={materia.frequencia} 
-                    max="100">
-                  </progress>
+                  <progress className={`progress w-full h-3 ${materia.frequencia < 75 ? 'progress-error' : 'progress-success'}`} value={materia.frequencia} max="100"></progress>
                 </div>
-                {materia.frequencia < 75 && (
-                  <div className="alert alert-error mt-4 py-2 text-sm flex items-start">
-                    <AlertTriangle className="w-5 h-5" />
-                    <span>Atenção! Risco de reprovação.</span>
-                  </div>
-                )}
+                
+                {/* Botão de Ação */}
                 <div className="card-actions justify-end mt-4">
-                  {statusRegistro === 'loading' ? (
-                    <button className="btn btn-disabled w-full">📡 {msgRegistro}</button>
-                  ) : (
-                    <button 
-                      className="btn btn-primary w-full gap-2"
-                      onClick={() => registrarPresenca(materia.turmaId)}
-                    >
-                      <MapPin size={18} /> Registrar Presença Agora
+                    <button className="btn btn-primary w-full gap-2" onClick={() => registrarPresenca(materia.turmaId)} disabled={loading}>
+                      <MapPin size={18} /> {loading ? 'Validando...' : 'Registrar Presença'}
                     </button>
-                  )}
                 </div>
-                {statusRegistro === 'success' && <p className="text-success text-center text-sm font-bold mt-2">{msgRegistro}</p>}
-                {statusRegistro === 'error' && <p className="text-error text-center text-sm font-bold mt-2">{msgRegistro}</p>}
               </div>
             </div>
           ))}
         </div>
-        {materias.length === 0 && (
-          <div className="text-center mt-10 text-gray-500">Você não está matriculado em nenhuma turma ainda.</div>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; // <--- FALTAVA ISSO
 import { Users, Calendar, MapPin, RefreshCw, X, LogOut } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export default function TeacherHome() {
   const user = JSON.parse(localStorage.getItem('geoClassUser') || '{}');
@@ -24,15 +25,24 @@ export default function TeacherHome() {
     navigate('/');
   };
 
-  const verChamada = async (turma: any) => {
+    const verChamada = async (turma: any) => {
     setSelectedTurma(turma);
     setLoading(true);
     try {
       const res = await fetch(`http://localhost:3000/turma/${turma.id}/presencas`);
       const data = await res.json();
       setPresencas(data);
+      
+      // NOVA NOTIFICAÇÃO
+      if (data.length > 0) {
+        toast.info(`${data.length} alunos registraram presença.`);
+      } else {
+        toast.warn("Nenhum registro encontrado para hoje.");
+      }
+
     } catch (error) {
       console.error(error);
+      toast.error("Erro ao buscar lista.");
     } finally {
       setLoading(false);
     }

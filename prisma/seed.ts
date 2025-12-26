@@ -2,74 +2,51 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log("🧹 Limpando banco de dados antigo...")
-  
-  // 1. Limpar dados na ordem correta (para não dar erro de vínculo/Foreign Key)
+  console.log("🧹 Limpando banco...")
   await prisma.attendanceLog.deleteMany({}) 
   await prisma.user.deleteMany({})
   await prisma.turma.deleteMany({})
 
-  console.log("🌱 Criando novos usuários...")
+  console.log("🌱 Criando usuários...")
 
-  // 2. ALUNO
+  // 1. ALUNO
   const aluno = await prisma.user.create({
-    data: {
-      nome: 'Aluno Exemplo',
-      email: 'aluno@fatec.sp.gov.br',
-      senha: '123',
-      perfil: 'ALUNO',
-      ra: '123456'
-    }
+    data: { nome: 'Aluno Exemplo', email: 'aluno@fatec.sp.gov.br', senha: '123', perfil: 'ALUNO', ra: '123456' }
   })
 
-  // 3. PROFESSOR
+  // 2. PROFESSOR
   const prof = await prisma.user.create({
-    data: {
-      nome: 'Prof. Michel',
-      email: 'prof@fatec.sp.gov.br',
-      senha: '123',
-      perfil: 'PROFESSOR'
-    }
+    data: { nome: 'Prof. Michel', email: 'prof@fatec.sp.gov.br', senha: '123', perfil: 'PROFESSOR' }
   })
 
-  // 4. COORDENADOR
+  // 3. COORDENADOR
   const coord = await prisma.user.create({
-    data: {
-      nome: 'Coord. Archimedes',
-      email: 'coord@fatec.sp.gov.br',
-      senha: '123',
-      perfil: 'COORDENADOR'
-    }
+    data: { nome: 'Coord. Archimedes', email: 'coord@fatec.sp.gov.br', senha: '123', perfil: 'COORDENADOR' }
   })
 
-  // 4. TURMA (Com matrícula do aluno)
+  // --- LÓGICA PARA TESTE ---
+  // Pega a hora AGORA e define o inicio da aula para 5 minutos atrás
+  // Assim você consegue testar a presença com sucesso.
+  const agora = new Date();
+  const horaInicio = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes() - 5).padStart(2, '0')}`;
+  const diaHoje = agora.getDay(); 
+
+  // 4. TURMA CONFIGURADA PARA HOJE
   const turma = await prisma.turma.create({
     data: {
       nome: 'Laboratório de Hardware',
-      latitude: -23.096923, // <--- SUAS COORDENADAS
-      longitude: -47.259202, // <--- SUAS COORDENADAS
-      raioMetros: 50,
+      latitude: -23.096923, // <--- CONFIRA SE ESTÁ CERTO
+      longitude: -47.259202, // <--- CONFIRA SE ESTÁ CERTO
+      raioMetros: 100, // Aumentei um pouco para facilitar o teste
       totalAulas: 40,
-      alunos: { connect: { id: aluno.id } }, // Matricula o aluno
-      professor: { connect: { id: prof.id } } // <--- VINCULA O PROFESSOR
-    }
-  })
-  
-  // Vamos criar umas presenças falsas para testar o gráfico
-  await prisma.attendanceLog.create({
-    data: {
-        userId: aluno.id,
-        turmaId: turma.id,
-        latitude: -23.00, longitude: -47.00,
-        statusSiga: 'SINCRONIZADO',
-        dataExclusao: new Date()
+      diaSemana: diaHoje,    // Define aula para HOJE
+      horarioInicio: horaInicio, // Define aula começando 5 min atrás
+      alunos: { connect: { id: aluno.id } },
+      professor: { connect: { id: prof.id } }
     }
   })
 
-  console.log(`✅ Dados atualizados com Matrícula!`)
-  console.log(`✅ Dados recriados com sucesso!`)
-  console.log(`👨‍🎓 Aluno ID: ${aluno.id}`)
-  console.log(`🏫 Turma ID: ${turma.id}`)
+  console.log(`✅ Aula criada para hoje (Dia ${diaHoje}) às ${horaInicio}`)
 }
 
 main()
