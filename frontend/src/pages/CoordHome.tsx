@@ -6,7 +6,10 @@ import {
 } from 'recharts';
 import { 
   LayoutDashboard, AlertTriangle, PlusCircle, Save, Map, 
-  LogOut, Lightbulb, TrendingUp 
+  LogOut, Lightbulb, TrendingUp, 
+  BookOpen,
+  Users,
+  GraduationCap
 } from 'lucide-react';
 
 export default function CoordHome() {
@@ -76,7 +79,7 @@ export default function CoordHome() {
   {/* LADO ESQUERDO: Logo e Título */}
   <div className="flex-1 flex items-center gap-3">
     {/* Adicionei um filtro brilho/contraste na logo para ela destacar no fundo azul */}
-    <img src="/logo.png" className="h-10 w-auto" alt="GeoClass Logo" />
+    <img src="/logo.png" className="h-10 w-auto" alt="GeoClass" />
     <div>
       <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
         GeoClass
@@ -98,7 +101,6 @@ export default function CoordHome() {
       {/* O botão que abre o menu é o próprio avatar */}
       <label tabIndex={0} className="btn btn-ghost btn-circle avatar hover:ring-2 hover:ring-secondary transition-all">
         <div className="w-11 rounded-full ring ring-secondary ring-offset-base-100 ring-offset-2">
-          {/* Se tiver foto no futuro, usa img. Por enquanto, placeholder com inicial */}
           <div className="bg-primary-focus text-white w-full h-full flex items-center justify-center font-bold text-lg">
             {user.nome?.charAt(0)}
           </div>
@@ -122,7 +124,36 @@ export default function CoordHome() {
 {/* --- FIM DA NOVA NAVBAR --- */}
 
       <div className="container mx-auto px-4 mt-8">
-        
+        <div className="flex flex-wrap justify-end gap-3 mb-6">
+  
+          {/* Botão Alunos (NOVO) */}
+          <button 
+            onClick={() => navigate('/alunos')}
+            className="btn btn-accent btn-outline gap-2 shadow-sm hover:shadow-md transition-all"
+          >
+            <GraduationCap size={20} />
+            Alunos
+          </button>
+
+          {/* Botão Professores/Coord */}
+          <button 
+            onClick={() => navigate('/equipe')}
+            className="btn btn-secondary btn-outline gap-2 shadow-sm hover:shadow-md transition-all"
+          >
+            <Users size={20} />
+            Equipe Acadêmica
+          </button>
+
+          {/* Botão Matérias (Já existia) */}
+          <button 
+            onClick={() => navigate('/todas-turmas')}
+            className="btn btn-primary btn-outline gap-2 shadow-sm hover:shadow-md transition-all"
+          >
+            <BookOpen size={20} />
+            Matérias
+          </button>
+        </div>
+
         {/* 1. SEÇÃO DE INTELIGÊNCIA (INSIGHTS) */}
         <div className="mb-8">
           <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">

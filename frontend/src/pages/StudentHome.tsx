@@ -109,7 +109,7 @@ export default function StudentHome() {
      {/* --- NOVA NAVBAR MODERNA (ALUNO) --- */}
 <div className="navbar bg-gradient-to-r from-primary to-[#0077b6] text-primary-content shadow-lg px-4 sm:px-8">
   <div className="flex-1 flex items-center gap-3">
-    <img src="/logo.png" className="h-10 w-auto" alt="GeoClass Logo" />
+    <img src="/logo.png" className="h-10 w-auto" alt="GeoClass" />
     <div>
       <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
         GeoClass

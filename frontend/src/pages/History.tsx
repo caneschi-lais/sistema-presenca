@@ -33,7 +33,7 @@ export default function History() {
       {/* --- NAVBAR DO ALUNO (Padrão) --- */}
       <div className="navbar bg-gradient-to-r from-primary to-[#0077b6] text-primary-content shadow-lg px-4 sm:px-8">
         <div className="flex-1 flex items-center gap-3">
-          <img src="/logo.png" className="h-10 w-auto brightness-200 contrast-200" alt="GeoClass" />
+          <img src="/logo.png" className="h-10 w-auto" alt="GeoClass" />
           <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
             GeoClass <span className="badge badge-ghost text-primary-content font-bold bg-white/20 border-none">Aluno</span>
           </h1>

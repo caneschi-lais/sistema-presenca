@@ -244,6 +244,121 @@ app.get('/turma/:id/presencas', async (req: any, reply) => {
   }));
 });
 
+// Rota: Listar TODAS as turmas (Para o Coordenador)
+app.get('/turmas', async (req, reply) => {
+  const turmas = await prisma.turma.findMany({
+    include: {
+      professor: {
+        select: { nome: true } // Traz o nome do professor responsável
+      },
+      _count: {
+        select: { alunos: true } // Traz quantos alunos estão matriculados
+      }
+    },
+    orderBy: { nome: 'asc' }
+  });
+  return turmas;
+});
+
+// Rota: Listar Equipe (Professores e Coordenadores)
+app.get('/equipe', async (req, reply) => {
+  const users = await prisma.user.findMany({
+    where: {
+      perfil: { in: ['PROFESSOR', 'COORDENADOR'] }
+    },
+    select: {
+      id: true,
+      nome: true,
+      email: true,
+      perfil: true,
+      _count: {
+        select: { turmasLecionadas: true } // Conta quantas turmas ele dá aula
+      }
+    },
+    orderBy: { nome: 'asc' }
+  });
+  return users;
+});
+
+// Rota: Listar Alunos com Paginação e Busca
+app.get('/alunos', async (req: any, reply) => {
+  const { page = 1, limit = 10, search = '' } = req.query;
+  
+  const p = Number(page);
+  const l = Number(limit);
+  const skip = (p - 1) * l;
+
+  // Filtro dinâmico (Nome ou RA)
+  const where = {
+    perfil: 'ALUNO',
+    OR: search ? [
+      { nome: { contains: search } }, // No Postgres use mode: 'insensitive' se precisar
+      { ra: { contains: search } }
+    ] : undefined
+  };
+
+  // 1. Busca os alunos dessa página
+  const alunos = await prisma.user.findMany({
+    where,
+    skip,
+    take: l,
+    select: {
+      id: true, nome: true, email: true, ra: true,
+      _count: { select: { turmas: true } } // Quantas matérias cursa
+    },
+    orderBy: { nome: 'asc' }
+  });
+
+  // 2. Conta o total (para saber quantas páginas existem)
+  const total = await prisma.user.count({ where });
+
+  return {
+    data: alunos,
+    total,
+    page: p,
+    totalPages: Math.ceil(total / l)
+  };
+});
+
+// Rota: Listar Alunos de uma Turma Específica (Com Paginação)
+app.get('/turma/:id/alunos', async (req: any, reply) => {
+  const { id } = req.params;
+  const { page = 1, limit = 10, search = '' } = req.query;
+  
+  const skip = (Number(page) - 1) * Number(limit);
+
+  // Filtro: Alunos desta turma + Busca Opcional
+  const where = {
+    turmas: { some: { id } }, // A mágica do Prisma: "Alunos que têm esta turma"
+    OR: search ? [
+      { nome: { contains: search } }, // Adicione mode: 'insensitive' se estiver usando Postgres
+      { ra: { contains: search } }
+    ] : undefined
+  };
+
+  try {
+    const alunos = await prisma.user.findMany({
+      where,
+      skip,
+      take: Number(limit),
+      orderBy: { nome: 'asc' },
+      select: { id: true, nome: true, ra: true, email: true }
+    });
+
+    const total = await prisma.user.count({ where });
+
+    return { 
+      data: alunos, 
+      total, 
+      page: Number(page), 
+      totalPages: Math.ceil(total / Number(limit)) 
+    };
+  } catch (error) {
+    console.error(error);
+    return reply.status(500).send({ error: "Erro ao buscar alunos da turma." });
+  }
+});
+
 // --- ROTAS DO COORDENADOR ---
 
 // 1. Dashboard & Análise de Evasão

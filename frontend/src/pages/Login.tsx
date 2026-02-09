@@ -43,13 +43,6 @@ export default function Login() {
     <div className="min-h-screen flex bg-base-100">
       
       {/* LADO ESQUERDO - Imagem (Escondido em celulares 'hidden md:flex') */}
-      {/*<div 
-        className="hidden md:flex md:w-1/2 bg-cover bg-center relative"
-        style={{
-          // Exemplo de imagem de tecnologia. Você pode trocar essa URL pela sua se preferir.
-          backgroundImage: 'url("https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")'
-        }}
-      >*/}
       <div className="w-1/2 hidden md:flex relative">
         <img src="/login.jpeg" className="bg-cover bg-center relative" alt="Login" />
          {/* Uma camada escura por cima da imagem para dar um toque profissional */}
@@ -61,8 +54,7 @@ export default function Login() {
         <div className="w-full max-w-md">
           
           {/* LOGO */}
-          {/* Certifique-se que logo.png está na pasta frontend/public */}
-          <img src="/logo.png" alt="GeoClass Logo" className="h-32 mb-8 mx-auto" />
+          <img src="/logo.png" alt="GeoClass" className="h-32 mb-8 mx-auto" />
 
           {/* Títulos */}
           <h2 className="text-3xl font-bold mb-2 text-base-content">Bem-vindo de volta!</h2>
