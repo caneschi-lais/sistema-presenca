@@ -3,56 +3,67 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(uuid())
-  nome      String
-  email     String   @unique
-  senha     String
-  perfil    String
-  ra        String?  @unique
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  nome             String
+  email            String   @unique
+  senha            String
+  perfil           String
+  ra               String?  @unique
   
-  logs      AttendanceLog[]
-  turmas    Turma[]  @relation("Matriculas") // Turmas que ele estuda
-  turmasLecionadas Turma[] @relation("Professor") // NOVO: Turmas que ele ensina
+  logs             AttendanceLog[]
+  
+  // Relação M:N com Turmas (Alunos matriculados)
+  // No MongoDB, o Prisma exige arrays de IDs para relações muitos-para-muitos
+  turmaIds         String[] @db.ObjectId
+  turmas           Turma[]  @relation("Matriculas", fields: [turmaIds], references: [id])
+  
+  // Relação 1:N com Turmas (Professor)
+  turmasLecionadas Turma[]  @relation("Professor")
 }
 
 model Turma {
-  id            String     @id @default(uuid())
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
   nome          String
   latitude      Float
   longitude     Float
   raioMetros    Int        @default(20)
   totalAulas    Int        @default(20)
   
-  // NOVOS CAMPOS PARA CONTROLE DE TEMPO
+  // CAMPOS PARA CONTROLE DE TEMPO
   diaSemana     Int        // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
   horarioInicio String     // Formato "HH:mm" (ex: "19:00")
   
   logs          AttendanceLog[]
-  alunos        User[]     @relation("Matriculas")
   
-  professorId   String?    
+  // Relação M:N com Users (Alunos matriculados)
+  alunoIds      String[]   @db.ObjectId
+  alunos        User[]     @relation("Matriculas", fields: [alunoIds], references: [id])
+  
+  // Relação 1:N com User (Professor)
+  professorId   String?    @db.ObjectId
   professor     User?      @relation("Professor", fields: [professorId], references: [id])
 }
 
-// O model AttendanceLog continua igual, não precisa mexer.
 model AttendanceLog {
-  id          String   @id @default(uuid())
-  dataHora    DateTime @default(now())
-  latitude    Float
-  longitude   Float
-  statusSiga  String   @default("PENDENTE")
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  dataHora     DateTime @default(now())
+  latitude     Float
+  longitude    Float
+  statusSiga   String   @default("PENDENTE")
   dataExclusao DateTime
   
-  // NOVO CAMPO DE SEGURANÇA
-  deviceId    String?  
+  // CAMPO DE SEGURANÇA
+  deviceId     String?
   
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  turmaId     String
-  turma       Turma    @relation(fields: [turmaId], references: [id])
+  // Chaves estrangeiras também precisam ser mapeadas como ObjectId
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id])
+  
+  turmaId      String   @db.ObjectId
+  turma        Turma    @relation(fields: [turmaId], references: [id])
 }

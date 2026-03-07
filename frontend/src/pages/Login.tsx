@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { LogIn } from 'lucide-react'; // Ícone removido para ficar igual à referência
 
 export default function Login() {
-  // --- MANTENDO A MESMA LÓGICA EXISTENTE ---
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
@@ -12,6 +10,9 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro('');
+    
+    // Rastreador 1
+    console.log("1. Botão clicado! Tentando conectar no backend...");
 
     try {
       const response = await fetch('http://localhost:3000/login', {
@@ -20,32 +21,42 @@ export default function Login() {
         body: JSON.stringify({ email, senha })
       });
 
+      // Rastreador 2
+      console.log("2. Resposta do servidor chegou! Status:", response.status);
+      
       const data = await response.json();
+      
+      // Rastreador 3
+      console.log("3. Dados recebidos:", data);
 
       if (response.ok) {
-        localStorage.setItem('geoClassUser', JSON.stringify(data));
-        if (data.perfil === 'ALUNO') navigate('/aluno');
-        else if (data.perfil === 'PROFESSOR') navigate('/professor');
-        else if (data.perfil === 'COORDENADOR') navigate('/coordenador');
+        localStorage.setItem('geoClassToken', data.token);
+        localStorage.setItem('geoClassUser', JSON.stringify(data.user));
+        
+        // Rastreador 4
+        console.log("4. Redirecionando o perfil:", data.user.perfil);
+        
+        if (data.user.perfil === 'ALUNO') navigate('/aluno');
+        else if (data.user.perfil === 'PROFESSOR') navigate('/professor');
+        else if (data.user.perfil === 'COORDENADOR') navigate('/coordenador');
+        else setErro('Perfil não reconhecido pelo sistema.');
+        
       } else {
         setErro(data.error || 'Erro ao entrar');
       }
     } catch (error) {
-      setErro('Erro de conexão com o servidor');
+      // Aqui resolvemos o aviso do VS Code usando a variável error!
+      console.error("ERRO DE CONEXÃO:", error); 
+      setErro('Erro de conexão com o servidor. O backend está rodando?');
     }
   };
-  // --- FIM DA LÓGICA EXISTENTE ---
 
-
-  // --- NOVO VISUAL ---
   return (
-    // Container principal que ocupa toda a tela (flex row)
     <div className="min-h-screen flex bg-base-100">
       
       {/* LADO ESQUERDO - Imagem (Escondido em celulares 'hidden md:flex') */}
       <div className="w-1/2 hidden md:flex relative">
-        <img src="/login.jpeg" className="bg-cover bg-center relative" alt="Login" />
-         {/* Uma camada escura por cima da imagem para dar um toque profissional */}
+        <img src="/login.jpeg" className="bg-cover bg-center relative w-full object-cover" alt="Login GeoClass" />
         <div className="absolute inset-0 bg-black bg-opacity-30"></div>
       </div>
 
@@ -57,7 +68,7 @@ export default function Login() {
           <img src="/logo.png" alt="GeoClass" className="h-32 mb-8 mx-auto" />
 
           {/* Títulos */}
-          <h2 className="text-3xl font-bold mb-2 text-base-content">Bem-vindo de volta!</h2>
+          <h2 className="text-3xl font-bold mb-2 text-base-content">Bem-vindo!</h2>
           <p className="text-gray-500 mb-8">Por favor, insira suas credenciais para entrar.</p>
           
           {/* Formulário */}
@@ -82,10 +93,6 @@ export default function Login() {
             <div className="form-control w-full">
               <label className="label flex justify-between items-center">
                 <span className="label-text font-medium text-base-content">Senha</span>
-                {/* Link visual de "Esqueceu a senha" (sem funcionalidade por enquanto) */}
-                <a href="#" className="label-text-alt link link-primary link-hover font-medium">
-                  Esqueceu a senha?
-                </a>
               </label>
               <input 
                 type="password" 
@@ -95,6 +102,9 @@ export default function Login() {
                 onChange={e => setSenha(e.target.value)}
                 required
               />
+              <a href="#" className="label-text-alt link link-primary link-hover font-medium">
+                Esqueceu a senha?
+              </a>
             </div>
             
             {/* Mensagem de Erro */}

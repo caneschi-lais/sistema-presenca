@@ -1,4 +1,6 @@
 // src/server.ts
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { PrismaClient } from '@prisma/client';
@@ -14,26 +16,90 @@ app.register(cors, {
   origin: true // Em produção, mude para o domínio do seu site
 });
 
-// Rota de Login Simples
+// --- ROTA DE REGISTO (CRIAR NOVO UTILIZADOR) ---
+app.post('/registro', async (req: any, reply) => {
+  const { nome, email, senha, perfil, ra } = req.body;
+
+  try {
+    // 1. Verifica se o email ou RA já existem
+    const userExists = await prisma.user.findFirst({
+      where: { OR: [{ email }, { ra: ra || undefined }] }
+    });
+
+    if (userExists) {
+      return reply.status(400).send({ error: 'Email ou RA já cadastrado' });
+    }
+
+    // 2. Encripta a senha antes de salvar no banco
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(senha, saltRounds);
+
+    // 3. Salva no MongoDB
+    const newUser = await prisma.user.create({
+      data: {
+        nome,
+        email,
+        senha: hashedPassword,
+        perfil, // 'ALUNO', 'PROFESSOR', 'COORDENADOR'
+        ra
+      }
+    });
+
+    return reply.status(201).send({ 
+      success: true, 
+      message: 'Usuário criado com sucesso!',
+      userId: newUser.id 
+    });
+
+  } catch (error) {
+    console.error(error);
+    return reply.status(500).send({ error: 'Erro ao criar usuário' });
+  }
+});
+
+// --- ROTA DE LOGIN SEGURA COM JWT ---
 app.post('/login', async (req: any, reply) => {
   const { email, senha } = req.body;
 
-  const user = await prisma.user.findUnique({
-    where: { email }
-  });
+  try {
+    // 1. Busca o usuário pelo email
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
 
-  // Validação simples (em produção usaríamos bcrypt para hash de senha)
-  if (!user || user.senha !== senha) {
-    return reply.status(401).send({ error: 'Email ou senha inválidos' });
+    // 2. Se não existir ou a senha estiver errada
+    if (!user) {
+      return reply.status(401).send({ error: 'Email ou senha inválidos' });
+    }
+
+    // 3. Compara a senha digitada com a senha encriptada do banco
+    const isPasswordValid = await bcrypt.compare(senha, user.senha);
+    if (!isPasswordValid) {
+      return reply.status(401).send({ error: 'Email ou senha inválidos' });
+    }
+
+    // 4. Gera o Token de Acesso (Crachá digital)
+    const secret = process.env.JWT_SECRET || 'fallback_secret';
+    const token = jwt.sign(
+      { userId: user.id, perfil: user.perfil }, 
+      secret, 
+      { expiresIn: '7d' } // O aluno fica logado por 7 dias sem precisar pôr a senha de novo
+    );
+
+    // 5. Retorna os dados e o token para o frontend
+    return {
+      token, // O frontend vai salvar isto (ex: no localStorage)
+      user: {
+        id: user.id,
+        nome: user.nome,
+        perfil: user.perfil,
+        ra: user.ra
+      }
+    };
+  } catch (error) {
+    console.error(error);
+    return reply.status(500).send({ error: 'Erro interno ao fazer login' });
   }
-
-  // Retorna os dados do usuário para o frontend salvar
-  return {
-    id: user.id,
-    nome: user.nome,
-    perfil: user.perfil,
-    ra: user.ra
-  };
 });
 
 // Rota POST: O app manda JSON com { alunoId, turmaId, lat, long }
