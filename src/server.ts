@@ -326,66 +326,6 @@ app.get('/turmas', async (req, reply) => {
   return turmas;
 });
 
-// Rota: Listar Equipe (Professores e Coordenadores)
-app.get('/equipe', async (req, reply) => {
-  const users = await prisma.user.findMany({
-    where: {
-      perfil: { in: ['PROFESSOR', 'COORDENADOR'] }
-    },
-    select: {
-      id: true,
-      nome: true,
-      email: true,
-      perfil: true,
-      _count: {
-        select: { turmasLecionadas: true } // Conta quantas turmas ele dá aula
-      }
-    },
-    orderBy: { nome: 'asc' }
-  });
-  return users;
-});
-
-// Rota: Listar Alunos com Paginação e Busca
-app.get('/alunos', async (req: any, reply) => {
-  const { page = 1, limit = 10, search = '' } = req.query;
-  
-  const p = Number(page);
-  const l = Number(limit);
-  const skip = (p - 1) * l;
-
-  // Filtro dinâmico (Nome ou RA)
-  const where = {
-    perfil: 'ALUNO',
-    OR: search ? [
-      { nome: { contains: search } }, // No Postgres use mode: 'insensitive' se precisar
-      { ra: { contains: search } }
-    ] : undefined
-  };
-
-  // 1. Busca os alunos dessa página
-  const alunos = await prisma.user.findMany({
-    where,
-    skip,
-    take: l,
-    select: {
-      id: true, nome: true, email: true, ra: true,
-      _count: { select: { turmas: true } } // Quantas matérias cursa
-    },
-    orderBy: { nome: 'asc' }
-  });
-
-  // 2. Conta o total (para saber quantas páginas existem)
-  const total = await prisma.user.count({ where });
-
-  return {
-    data: alunos,
-    total,
-    page: p,
-    totalPages: Math.ceil(total / l)
-  };
-});
-
 // Rota: Listar Alunos de uma Turma Específica (Com Paginação)
 app.get('/turma/:id/alunos', async (req: any, reply) => {
   const { id } = req.params;
@@ -426,53 +366,6 @@ app.get('/turma/:id/alunos', async (req: any, reply) => {
 });
 
 // --- ROTAS DO COORDENADOR ---
-
-// 1. Dashboard & Análise de Evasão
-app.get('/coordenador/dashboard', async (req, reply) => {
-  // Totais Gerais
-  const totalAlunos = await prisma.user.count({ where: { perfil: 'ALUNO' } });
-  const totalTurmas = await prisma.turma.count();
-
-  // Análise de Risco (Quem está com < 75% de frequência)
-  // Trazemos os alunos e suas turmas para calcular na hora
-  const alunos = await prisma.user.findMany({
-    where: { perfil: 'ALUNO' },
-    include: {
-      turmas: {
-        include: { logs: true }
-      }
-    }
-  });
-
-  const listaRisco: any[] = [];
-
-  alunos.forEach(aluno => {
-    aluno.turmas.forEach(turma => {
-      // Filtra logs apenas deste aluno nesta turma
-      const presencas = turma.logs.filter(l => l.userId === aluno.id).length;
-      const frequencia = (presencas / turma.totalAulas) * 100;
-
-      if (frequencia < 75) {
-        listaRisco.push({
-          id: aluno.id,
-          nome: aluno.nome,
-          ra: aluno.ra,
-          turma: turma.nome,
-          frequencia: Math.round(frequencia),
-          faltas: turma.totalAulas - presencas
-        });
-      }
-    });
-  });
-
-  return {
-    totalAlunos,
-    totalTurmas,
-    alunosEmRisco: listaRisco.length,
-    detalhesRisco: listaRisco
-  };
-});
-
 // 2. Lista simples de professores (Para o formulário de criar turma)
 app.get('/lista-professores', async () => {
   return await prisma.user.findMany({
