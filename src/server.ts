@@ -507,72 +507,6 @@ app.post('/turmas', async (req: any, reply) => {
   }
 });
 
-// --- ROTA DE INTELIGÊNCIA DE DADOS ---
-app.get('/coordenador/analytics', async (req, reply) => {
-  // 1. Frequência por Dia da Semana (0=Dom, 1=Seg...)
-  // Vamos contar quantas faltas/presenças ocorreram em cada dia
-  const logs = await prisma.attendanceLog.findMany({
-    include: { turma: true }
-  });
-
-  const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const frequenciaPorDia = [0, 0, 0, 0, 0, 0, 0];
-
-  logs.forEach(log => {
-    const dia = new Date(log.dataHora).getDay();
-    frequenciaPorDia[dia]++;
-  });
-
-  // Formata para o gráfico
-  const graficoDias = diasSemana.map((dia, index) => ({
-    name: dia,
-    presencas: frequenciaPorDia[index]
-  }));
-
-  // 2. Análise de Pontualidade (Chegou nos primeiros 5min ou no sufoco?)
-  let pontuais = 0; // Chegaram em até 5 min
-  let atrasados = 0; // Chegaram entre 5 e 15 min
-
-  logs.forEach(log => {
-    // Pega a hora que o aluno chegou
-    const horaLog = new Date(log.dataHora);
-    // Pega a hora que a aula começava (Baseado no cadastro da turma)
-    const [h, m] = log.turma.horarioInicio.split(':').map(Number);
-    const horaAula = new Date(log.dataHora);
-    horaAula.setHours(h, m, 0, 0);
-
-    const diffMinutos = (horaLog.getTime() - horaAula.getTime()) / 1000 / 60;
-
-    if (diffMinutos <= 5) pontuais++;
-    else if (diffMinutos > 5) atrasados++;
-  });
-
-  // 3. Gerador de Insights (IA Simples)
-  const insights = [];
-  
-  // Insight de Sexta-feira
-  if (frequenciaPorDia[5] < frequenciaPorDia[1]) { // Se Sex tem menos que Seg
-    insights.push("📉 Baixa adesão detectada às sextas-feiras. Evite agendar avaliações importantes.");
-  }
-
-  // Insight de Pontualidade
-  const total = pontuais + atrasados;
-  if (total > 0 && (atrasados / total) > 0.3) { // Se 30% chega atrasado
-    insights.push("⚠️ 30% da turma chega após o início da aula. Considere tolerância ou reforço de horário.");
-  } else {
-    insights.push("✅ A pontualidade da turma está excelente. A maioria chega nos primeiros 5 minutos.");
-  }
-
-  return {
-    graficoDias,
-    graficoPontualidade: [
-      { name: 'Pontuais (<5min)', value: pontuais },
-      { name: 'No Limite (5-15min)', value: atrasados }
-    ],
-    insights
-  };
-});
-
 // Rota para Atualizar Perfil
 app.put('/usuarios/:id', async (req: any, reply) => {
   const { id } = req.params;
@@ -591,6 +525,141 @@ app.put('/usuarios/:id', async (req: any, reply) => {
   }
 });
 
+// Rota para Matricular Aluno na Turma
+app.post('/matricular', async (req: any, reply) => {
+  const { alunoId, turmaId } = req.body;
+  try {
+    // No MongoDB com Prisma, precisamos dar "push" do ID nas listas de ambos
+    await prisma.turma.update({
+      where: { id: turmaId },
+      data: { alunoIds: { push: alunoId } }
+    });
+    await prisma.user.update({
+      where: { id: alunoId },
+      data: { turmaIds: { push: turmaId } }
+    });
+    return { success: true, message: "Aluno matriculado com sucesso!" };
+  } catch (error) {
+    console.error(error);
+    return reply.status(500).send({ error: "Erro ao matricular aluno" });
+  }
+});
+
+// Rota para Atribuir Professor a uma Turma
+app.post('/atribuir-professor', async (req: any, reply) => {
+  const { professorId, turmaId } = req.body;
+  try {
+    await prisma.turma.update({
+      where: { id: turmaId },
+      data: { professorId: professorId }
+    });
+    return { success: true, message: "Professor atribuído à turma com sucesso!" };
+  } catch (error) {
+    console.error(error);
+    return reply.status(500).send({ error: "Erro ao atribuir professor" });
+  }
+});
+
+// Rota de Analytics Detalhado para o Coordenador
+app.get('/coordenador/analytics', async (req: any, reply) => {
+  try {
+    const alunos = await prisma.user.findMany({ where: { perfil: 'ALUNO' } });
+    const professores = await prisma.user.findMany({ where: { perfil: 'PROFESSOR' } });
+    const turmas = await prisma.turma.findMany();
+
+    const listaProfessores = professores.map(prof => ({
+      id: prof.id,
+      nome: prof.nome,
+      email: prof.email,
+      qtdMaterias: turmas.filter((t: any) => t.professorId === prof.id).length
+    }));
+
+    const listaTurmas = turmas.map((t: any) => {
+      const prof = professores.find(p => p.id === t.professorId);
+      return {
+        id: t.id,
+        nome: t.nome,
+        totalAulas: t.totalAulas,
+        horarioInicio: t.horarioInicio,
+        diaSemana: t.diaSemana,
+        professor: prof ? prof.nome : 'Sem Professor Vinculado',
+        lat: t.latitude,   // Ajustado para o seu schema
+        long: t.longitude, // Ajustado para o seu schema
+        qtdAlunos: t.alunoIds ? t.alunoIds.length : 0
+      };
+    });
+
+    const listaAlunos = [];
+    const listaRisco = [];
+
+    for (const aluno of alunos) {
+      const turmasDoAluno = turmas.filter((t: any) => t.alunoIds && t.alunoIds.includes(aluno.id));
+      
+      let somaFrequencias = 0;
+      let qtdTurmasAvaliadas = 0;
+      
+      for (const turma of turmasDoAluno) {
+        // CONTAGEM REAL NO BANCO DE DADOS
+        const presencasRealizadas = await prisma.attendanceLog.count({
+          where: {
+            userId: aluno.id,  // Ajustado para o seu schema
+            turmaId: turma.id
+          }
+        });
+
+        // (Presenças / Total de Aulas) * 100
+        const frequenciaNaMateria = turma.totalAulas > 0 
+          ? Math.round((presencasRealizadas / turma.totalAulas) * 100) 
+          : 100;
+
+        somaFrequencias += frequenciaNaMateria;
+        qtdTurmasAvaliadas++;
+        
+        if (frequenciaNaMateria < 75) {
+          listaRisco.push({
+            id: `${aluno.id}-${turma.id}`,
+            ra: aluno.ra,
+            nome: aluno.nome,
+            email: aluno.email,
+            turma: turma.nome,
+            frequencia: frequenciaNaMateria
+          });
+        }
+      }
+
+      const frequenciaGeral = qtdTurmasAvaliadas > 0 
+        ? Math.round(somaFrequencias / qtdTurmasAvaliadas) 
+        : 100;
+
+      listaAlunos.push({
+        id: aluno.id,
+        ra: aluno.ra,
+        nome: aluno.nome,
+        email: aluno.email,
+        frequenciaGeral: frequenciaGeral,
+        qtdMaterias: turmasDoAluno.length
+      });
+    }
+
+    return {
+      stats: {
+        totalAlunos: alunos.length,
+        totalProfessores: professores.length,
+        turmasAtivas: turmas.length,
+        alunosEmRisco: listaRisco.length
+      },
+      detalhes: {
+        alunos: listaAlunos,
+        professores: listaProfessores,
+        turmas: listaTurmas,
+        risco: listaRisco
+      }
+    };
+  } catch (error) {
+    console.error(error);
+    return reply.status(500).send({ error: "Erro ao buscar analytics detalhado" });
+  }
+});
 // Iniciar o servidor
 const start = async () => {
   try {

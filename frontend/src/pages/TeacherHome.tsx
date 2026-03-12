@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Users, Calendar, MapPin, RefreshCw, X, LogOut, 
-  Clock, CheckCircle, Search, MoreVertical, GraduationCap, ChevronLeft, ChevronRight, Mail 
+  Users, Calendar, RefreshCw, X, 
+  Clock, CheckCircle, Search, GraduationCap, ChevronLeft, ChevronRight, Mail 
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -19,7 +19,7 @@ export default function TeacherHome() {
   const [presencas, setPresencas] = useState<any[]>([]);
   const [loadingChamada, setLoadingChamada] = useState(false);
 
-  // NOVO: Estados para Modal de Lista de Alunos (Paginação)
+  // Estados para Modal de Lista de Alunos (Paginação)
   const [selectedTurmaAlunos, setSelectedTurmaAlunos] = useState<any>(null);
   const [listaAlunos, setListaAlunos] = useState<any[]>([]);
   const [loadingAlunos, setLoadingAlunos] = useState(false);
@@ -30,14 +30,18 @@ export default function TeacherHome() {
   const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
   useEffect(() => {
+    if (!user || user.perfil !== 'PROFESSOR') {
+      navigate('/');
+      return;
+    }
     carregarTurmas();
-  }, [user.id]);
+  }, []);
 
   // Debounce para busca de alunos
   useEffect(() => {
     if (selectedTurmaAlunos) {
       const timer = setTimeout(() => {
-        carregarListaAlunos(selectedTurmaAlunos.id, 1); // Volta pra pág 1 ao buscar
+        carregarListaAlunos(selectedTurmaAlunos.id, 1);
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -52,7 +56,7 @@ export default function TeacherHome() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('geoClassUser');
+    localStorage.clear(); // Limpa tudo (token e user)
     navigate('/');
   };
 
@@ -64,9 +68,11 @@ export default function TeacherHome() {
       const res = await fetch(`http://localhost:3000/turma/${turma.id}/presencas`);
       const data = await res.json();
       setPresencas(data);
-      if (data.length > 0) toast.info(`${data.length} presenças hoje.`);
-    } catch (error) { toast.error("Erro ao buscar lista."); } 
-    finally { setLoadingChamada(false); }
+    } catch (error) { 
+      toast.error("Erro ao buscar lista."); 
+    } finally { 
+      setLoadingChamada(false); 
+    }
   };
 
   // --- NOVA FUNÇÃO: LISTAR ALUNOS DA TURMA ---
@@ -80,7 +86,7 @@ export default function TeacherHome() {
   const carregarListaAlunos = async (turmaId: string, page: number) => {
     setLoadingAlunos(true);
     try {
-      const url = `http://localhost:3000/turma/${turmaId}/alunos?page=${page}&limit=5&search=${buscaAlunos}`; // Limit 5 para testar paginação
+      const url = `http://localhost:3000/turma/${turmaId}/alunos?page=${page}&limit=5&search=${buscaAlunos}`;
       const res = await fetch(url);
       const data = await res.json();
       
@@ -103,7 +109,7 @@ export default function TeacherHome() {
 
   return (
     <div className="min-h-screen bg-base-200 pb-10">
-      {/* NAVBAR (Igual ao anterior) */}
+      {/* NAVBAR */}
       <div className="navbar bg-gradient-to-r from-primary to-[#0077b6] text-primary-content shadow-lg px-4 sm:px-8">
         <div className="flex-1 flex items-center gap-3">
           <img src="/logo.png" className="h-10 w-auto" alt="GeoClass" />
@@ -141,6 +147,12 @@ export default function TeacherHome() {
 
         {loading && <div className="text-center py-20"><span className="loading loading-spinner loading-lg text-primary"></span></div>}
 
+        {!loading && turmas.length === 0 && (
+          <div className="text-center py-20 text-gray-500">
+            Você ainda não foi alocado em nenhuma turma.
+          </div>
+        )}
+
         {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {turmas.map((turma) => (
@@ -166,9 +178,7 @@ export default function TeacherHome() {
                     </div>
                   </div>
 
-                  {/* AÇÕES DO CARD */}
                   <div className="card-actions justify-end mt-6 flex-col gap-2">
-                    {/* Botão Chamada (Existente) */}
                     <button 
                       className="btn btn-primary w-full gap-2 shadow-md"
                       onClick={() => verChamada(turma)}
@@ -176,7 +186,6 @@ export default function TeacherHome() {
                       <CheckCircle size={18} /> Chamada do Dia
                     </button>
                     
-                    {/* Botão Ver Alunos (NOVO) */}
                     <button 
                       className="btn btn-secondary btn-outline w-full gap-2"
                       onClick={() => abrirListaAlunos(turma)}
@@ -197,8 +206,25 @@ export default function TeacherHome() {
           <div className="modal-box w-11/12 max-w-4xl p-0 overflow-hidden">
             <div className="bg-primary text-white p-4 flex justify-between items-center">
               <h3 className="font-bold text-lg flex items-center gap-2"><CheckCircle/> Chamada: {selectedTurmaChamada.nome}</h3>
-              <button className="btn btn-ghost btn-circle text-white" onClick={() => setSelectedTurmaChamada(null)}><X size={24} /></button>
+              
+              {/* NOVO: Botão de Refresh e Fechar lado a lado */}
+              <div className="flex items-center gap-2">
+                <button 
+                  className="btn btn-ghost btn-circle text-white tooltip tooltip-left" 
+                  data-tip="Atualizar lista"
+                  onClick={() => verChamada(selectedTurmaChamada)}
+                >
+                  <RefreshCw size={20} className={loadingChamada ? "animate-spin" : ""} />
+                </button>
+                <button 
+                  className="btn btn-ghost btn-circle text-white" 
+                  onClick={() => setSelectedTurmaChamada(null)}
+                >
+                  <X size={24} />
+                </button>
+              </div>
             </div>
+
             <div className="p-6 bg-base-100">
                 <div className="overflow-x-auto h-80 border border-base-200 rounded-lg">
                   <table className="table table-zebra w-full header-fixed">
@@ -211,10 +237,12 @@ export default function TeacherHome() {
                           <td className="font-mono text-xs">{new Date(p.horario).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
                           <td>{p.ra}</td>
                           <td className="font-bold">{p.aluno}</td>
-                          <td><span className="badge badge-success badge-sm">Presente</span></td>
+                          <td><span className="badge badge-success badge-sm border-none">Presente</span></td>
                         </tr>
                       ))}
-                      {presencas.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-gray-400">Ninguém registrou presença hoje.</td></tr>}
+                      {!loadingChamada && presencas.length === 0 && (
+                        <tr><td colSpan={4} className="text-center py-10 text-gray-400">Ninguém registrou presença hoje.</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -227,8 +255,6 @@ export default function TeacherHome() {
       {selectedTurmaAlunos && (
         <div className="modal modal-open bg-black/60 backdrop-blur-sm z-50">
           <div className="modal-box w-11/12 max-w-3xl p-0 overflow-hidden">
-            
-            {/* Cabeçalho do Modal */}
             <div className="bg-secondary text-white p-4 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="bg-white/20 p-2 rounded-lg"><GraduationCap size={24} /></div>
@@ -243,8 +269,6 @@ export default function TeacherHome() {
             </div>
 
             <div className="p-6 bg-base-100">
-              
-              {/* Barra de Busca */}
               <div className="mb-4">
                 <div className="relative">
                   <input 
@@ -258,7 +282,6 @@ export default function TeacherHome() {
                 </div>
               </div>
 
-              {/* Tabela de Alunos */}
               <div className="overflow-x-auto min-h-[300px]">
                 {loadingAlunos ? (
                   <div className="flex justify-center items-center h-64"><span className="loading loading-spinner loading-lg text-secondary"></span></div>
@@ -292,7 +315,6 @@ export default function TeacherHome() {
                 )}
               </div>
 
-              {/* Paginação */}
               <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
                 <span className="text-xs text-gray-500">Página {pageAlunos} de {totalPageAlunos}</span>
                 <div className="join">
@@ -318,7 +340,6 @@ export default function TeacherHome() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

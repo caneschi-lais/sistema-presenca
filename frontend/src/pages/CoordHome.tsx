@@ -1,286 +1,323 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend 
-} from 'recharts';
-import { 
-  LayoutDashboard, AlertTriangle, PlusCircle, Save, Map, 
-  LogOut, Lightbulb, TrendingUp, 
-  BookOpen,
-  Users,
-  GraduationCap
+import { Users, BookOpen, AlertTriangle, GraduationCap, BarChart3, Settings, LogOut, ChevronRight, X, MapPin
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function CoordHome() {
   const user = JSON.parse(localStorage.getItem('geoClassUser') || '{}');
   const navigate = useNavigate();
-  
-  const [stats, setStats] = useState<any>(null);
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [professores, setProfessores] = useState<any[]>([]);
-  const [novaTurma, setNovaTurma] = useState({
-    nome: '', professorId: '', lat: '', long: '', totalAulas: 40, diaSemana: '1', horarioInicio: '19:00'
-  });
-  const [msgForm, setMsgForm] = useState('');
 
-  // Cores do Gráfico (Azul Primary e Verde Success)
-  const COLORS = ['#0056b3', '#00a96e']; 
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalAlunos: 0, totalProfessores: 0, turmasAtivas: 0, alunosEmRisco: 0 });
+  
+  // Estado para armazenar as listas detalhadas
+  const [detalhes, setDetalhes] = useState({ alunos: [], professores: [], turmas: [], risco: [] });
+  
+  // Estado para controlar qual modal está aberto
+  const [activeModal, setActiveModal] = useState<'ALUNOS' | 'PROFESSORES' | 'TURMAS' | 'RISCO' | null>(null);
+
+  const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+  const dadosEvasao = [
+    { semestre: '2024.1', taxa: 18.5 },
+    { semestre: '2024.2', taxa: 16.2 },
+    { semestre: '2025.1', taxa: 14.0 },
+    { semestre: '2025.2', taxa: 15.5 },
+    { semestre: '2026.1', taxa: 12.3 }, 
+  ];
 
   useEffect(() => {
-    carregarDados();
+    if (!user || user.perfil !== 'COORDENADOR') {
+      navigate('/');
+      return;
+    }
+    carregarDashboard();
   }, []);
 
-  const carregarDados = () => {
-    // 1. Dados Gerais
-    fetch('http://localhost:3000/coordenador/dashboard')
-      .then(res => res.json())
-      .then(setStats);
-    
-    // 2. Dados de Inteligência (Gráficos)
-    fetch('http://localhost:3000/coordenador/analytics')
-      .then(res => res.json())
-      .then(setAnalytics);
-
-    fetch('http://localhost:3000/lista-professores')
-      .then(res => res.json())
-      .then(setProfessores);
-  };
-
-  const handleCriarTurma = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMsgForm('Salvando...');
+  const carregarDashboard = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/turmas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(novaTurma)
-      });
+      const res = await fetch('http://localhost:3000/coordenador/analytics');
+      const data = await res.json();
+      
       if (res.ok) {
-        setMsgForm('✅ Turma criada!');
-        carregarDados();
-        setNovaTurma({...novaTurma, nome: ''});
-      } else setMsgForm('❌ Erro.');
-    } catch (e) { setMsgForm('❌ Erro Conexão.'); }
+        setStats(data.stats);
+        setDetalhes(data.detalhes);
+      }
+    } catch (error) {
+      console.error("Erro de conexão:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('geoClassUser');
+    localStorage.clear();
     navigate('/');
   };
 
-  if (!stats || !analytics) return <div className="p-10 text-center text-primary font-bold">Carregando Inteligência...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-base-200"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
-      {/* --- NOVA NAVBAR MODERNA (COORDENADOR) --- */}
-<div className="navbar bg-gradient-to-r from-primary to-[#0077b6] text-primary-content shadow-lg px-4 sm:px-8">
-  
-  {/* LADO ESQUERDO: Logo e Título */}
-  <div className="flex-1 flex items-center gap-3">
-    {/* Adicionei um filtro brilho/contraste na logo para ela destacar no fundo azul */}
-    <img src="/logo.png" className="h-10 w-auto" alt="GeoClass" />
-    <div>
-      <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-        GeoClass
-        {/* Badge do módulo */}
-        <span className="badge badge-secondary text-white font-bold border-none bg-secondary/90">Gestão</span>
-      </h1>
-    </div>
-  </div>
-
-  {/* LADO DIREITO: Perfil do Usuário */}
-  <div className="flex-none gap-4">
-    
-    {/* Info de Texto (Escondido em mobile 'hidden sm:block') */}
-    <div className="hidden sm:block text-right leading-tight">
-    </div>
-
-    {/* DROPDOWN DO AVATAR */}
-    <div className="dropdown dropdown-end">
-      {/* O botão que abre o menu é o próprio avatar */}
-      <label tabIndex={0} className="btn btn-ghost btn-circle avatar hover:ring-2 hover:ring-secondary transition-all">
-        <div className="w-11 rounded-full ring ring-secondary ring-offset-base-100 ring-offset-2">
-          <div className="bg-primary-focus text-white w-full h-full flex items-center justify-center font-bold text-lg">
-            {user.nome?.charAt(0)}
-          </div>
+    <div className="min-h-screen bg-base-200 pb-10">
+      {/* NAVBAR */}
+      <div className="navbar bg-neutral text-neutral-content shadow-lg px-4 sm:px-8">
+        <div className="flex-1 flex items-center gap-3">
+          <img src="/logo.png" className="h-10 w-auto brightness-0 invert" alt="GeoClass" />
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            GeoClass <span className="badge badge-warning text-warning-content font-bold border-none">Gestão</span>
+          </h1>
         </div>
-      </label>
-      
-      {/* O Menu que abre ao clicar */}
-      <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-base-content">
-        <li className="menu-title sm:hidden">
-          <span>Logado como {user.nome}</span>
-        </li>
-        <li><a onClick={() => navigate('/perfil')} className="justify-between">Meu Perfil</a></li>
-        <li><a onClick={() => navigate('/configuracoes')}>Configurações</a></li>
-        <div className="divider my-0"></div>
-        {/* Botão de Sair em vermelho */}
-        <li><button onClick={handleLogout} className="text-error font-bold hover:bg-error/10">Sair da Conta</button></li>
-      </ul>
-    </div>
-  </div>
-</div>
-{/* --- FIM DA NOVA NAVBAR --- */}
-
-      <div className="container mx-auto px-4 mt-8">
-        <div className="flex flex-wrap justify-end gap-3 mb-6">
-  
-          {/* Botão Alunos (NOVO) */}
-          <button 
-            onClick={() => navigate('/alunos')}
-            className="btn btn-accent btn-outline gap-2 shadow-sm hover:shadow-md transition-all"
-          >
-            <GraduationCap size={20} />
-            Alunos
-          </button>
-
-          {/* Botão Professores/Coord */}
-          <button 
-            onClick={() => navigate('/equipe')}
-            className="btn btn-secondary btn-outline gap-2 shadow-sm hover:shadow-md transition-all"
-          >
-            <Users size={20} />
-            Equipe Acadêmica
-          </button>
-
-          {/* Botão Matérias (Já existia) */}
-          <button 
-            onClick={() => navigate('/todas-turmas')}
-            className="btn btn-primary btn-outline gap-2 shadow-sm hover:shadow-md transition-all"
-          >
-            <BookOpen size={20} />
-            Matérias
-          </button>
-        </div>
-
-        {/* 1. SEÇÃO DE INTELIGÊNCIA (INSIGHTS) */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-            <Lightbulb className="text-yellow-500" /> Insights da IA
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             {analytics.insights.map((insight: string, idx: number) => (
-               <div key={idx} className="alert bg-white shadow-sm border-l-4 border-success">
-                 <div>
-                   <TrendingUp className="stroke-current flex-shrink-0 h-6 w-6 text-success" />
-                   <span className="text-gray-700 font-medium">{insight}</span>
-                 </div>
-               </div>
-             ))}
-          </div>
-        </div>
-
-        {/* 2. GRÁFICOS E ESTATÍSTICAS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            
-            {/* Gráfico de Barras: Adesão Semanal */}
-            <div className="card bg-white shadow-xl lg:col-span-2">
-              <div className="card-body">
-                <h3 className="card-title text-gray-700 text-sm">Frequência Semanal (Presenças Totais)</h3>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analytics.graficoDias}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="presencas" fill="#0056b3" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-
-            {/* Gráfico de Pizza: Pontualidade */}
-            <div className="card bg-white shadow-xl">
-              <div className="card-body">
-                <h3 className="card-title text-gray-700 text-sm">Análise de Pontualidade</h3>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={analytics.graficoPontualidade}
-                        cx="50%" cy="50%"
-                        innerRadius={60} outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {analytics.graficoPontualidade.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend verticalAlign="bottom" height={36}/>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="text-center text-xs text-gray-400 mt-2">
-                  Baseado nos registros de hoje
-                </div>
-              </div>
-            </div>
-        </div>
-
-        {/* 3. OPERACIONAL (Tabela de Risco e Cadastro) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Radar de Evasão */}
-          <div className="card bg-white shadow-xl border border-gray-100">
-            <div className="card-body">
-              <h3 className="card-title text-gray-700 mb-4 flex items-center gap-2">
-                <AlertTriangle className="text-error" /> Radar de Evasão
-              </h3>
-              <div className="overflow-x-auto h-64">
-                <table className="table table-compact w-full">
-                  <thead>
-                    <tr><th>Aluno</th><th>Freq</th><th>Situação</th></tr>
-                  </thead>
-                  <tbody>
-                    {stats.detalhesRisco.map((item: any, idx: number) => (
-                      <tr key={idx}>
-                        <td>{item.nome}</td>
-                        <td className="font-bold text-error">{item.frequencia}%</td>
-                        <td><span className="badge badge-error badge-xs">Crítico</span></td>
-                      </tr>
-                    ))}
-                    {stats.detalhesRisco.length === 0 && <tr><td colSpan={3} className="text-center text-success">Nenhum risco detectado!</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* Cadastro de Turma (Atualizado com Horário) */}
-          <div className="card bg-white shadow-xl border border-gray-100">
-            <div className="card-body">
-              <h3 className="card-title text-success mb-2 flex items-center gap-2">
-                <PlusCircle /> Nova Turma
-              </h3>
-              <form onSubmit={handleCriarTurma} className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Nome da Matéria" className="input input-bordered col-span-2 input-sm" 
-                  value={novaTurma.nome} onChange={e => setNovaTurma({...novaTurma, nome: e.target.value})} required />
-                
-                <select className="select select-bordered select-sm" value={novaTurma.professorId} onChange={e => setNovaTurma({...novaTurma, professorId: e.target.value})} required>
-                  <option value="">Professor...</option>
-                  {professores.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-                </select>
-
-                <input type="time" className="input input-bordered input-sm" value={novaTurma.horarioInicio} onChange={e => setNovaTurma({...novaTurma, horarioInicio: e.target.value})} required />
-
-                <input type="number" placeholder="Lat" className="input input-bordered input-sm" value={novaTurma.lat} onChange={e => setNovaTurma({...novaTurma, lat: e.target.value})} required />
-                <input type="number" placeholder="Long" className="input input-bordered input-sm" value={novaTurma.long} onChange={e => setNovaTurma({...novaTurma, long: e.target.value})} required />
-
-                <button type="submit" className="btn btn-success btn-sm text-white col-span-2 gap-2">
-                  <Save size={16} /> Salvar Turma
-                </button>
-              </form>
-              <p className="text-center text-xs text-primary mt-2">{msgForm}</p>
-            </div>
-          </div>
-
+        <div className="flex-none gap-4">
+          <span className="hidden md:inline text-sm font-medium">Olá, Coordenador(a)</span>
+          <button onClick={handleLogout} className="btn btn-ghost btn-circle text-error"><LogOut size={20} /></button>
         </div>
       </div>
+
+      <div className="container mx-auto px-4 mt-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-base-content flex items-center gap-2">
+            <BarChart3 className="text-primary" size={28} /> Visão Geral da Instituição
+          </h2>
+          <p className="text-gray-500 mt-1">Clique nos cartões abaixo para ver os relatórios detalhados.</p>
+        </div>
+
+        {/* CARDS DE ESTATÍSTICAS (AGORA CLICÁVEIS) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          
+          <div 
+            onClick={() => setActiveModal('ALUNOS')}
+            className="card bg-base-100 shadow-sm border-l-4 border-primary cursor-pointer hover:bg-base-300 hover:shadow-md transition-all"
+          >
+            <div className="card-body p-6 flex flex-row items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase">Alunos Matriculados</p>
+                <p className="text-3xl font-bold text-base-content mt-1">{stats.totalAlunos}</p>
+              </div>
+              <div className="bg-primary/10 p-3 rounded-xl text-primary"><GraduationCap size={28} /></div>
+            </div>
+          </div>
+
+          <div 
+            onClick={() => setActiveModal('PROFESSORES')}
+            className="card bg-base-100 shadow-sm border-l-4 border-secondary cursor-pointer hover:bg-base-300 hover:shadow-md transition-all"
+          >
+            <div className="card-body p-6 flex flex-row items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase">Professores</p>
+                <p className="text-3xl font-bold text-base-content mt-1">{stats.totalProfessores}</p>
+              </div>
+              <div className="bg-secondary/10 p-3 rounded-xl text-secondary"><Users size={28} /></div>
+            </div>
+          </div>
+
+          <div 
+            onClick={() => setActiveModal('TURMAS')}
+            className="card bg-base-100 shadow-sm border-l-4 border-accent cursor-pointer hover:bg-base-300 hover:shadow-md transition-all"
+          >
+            <div className="card-body p-6 flex flex-row items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase">Turmas Ativas</p>
+                <p className="text-3xl font-bold text-base-content mt-1">{stats.turmasAtivas}</p>
+              </div>
+              <div className="bg-accent/10 p-3 rounded-xl text-accent"><BookOpen size={28} /></div>
+            </div>
+          </div>
+
+          <div 
+            onClick={() => setActiveModal('RISCO')}
+            className="card bg-base-100 shadow-sm border-l-4 border-error cursor-pointer hover:bg-base-300 hover:shadow-md transition-all"
+          >
+            <div className="card-body p-6 flex flex-row items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase">Alertas de Risco</p>
+                <p className="text-3xl font-bold text-error mt-1">{stats.alunosEmRisco}</p>
+              </div>
+              <div className="bg-error/10 p-3 rounded-xl text-error"><AlertTriangle size={28} /></div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* GRÁFICO DE EVASÃO HISTÓRICA */}
+        <div className="card bg-base-100 shadow-sm mb-8 border border-base-200">
+          <div className="card-body">
+            <h3 className="card-title text-base-content mb-6 flex items-center gap-2">
+              <BarChart3 className="text-primary" /> Histórico de Evasão (Taxa Geral FATEC)
+            </h3>
+            
+            <div className="h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dadosEvasao} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="semestre" stroke="#6b7280" fontStyle="bold" />
+                  <YAxis unit="%" stroke="#6b7280" />
+                  <Tooltip 
+                    formatter={(value) => [`${value}%`, 'Taxa de Evasão']}
+                    labelStyle={{ fontWeight: 'bold', color: '#374151' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="taxa" 
+                    stroke="#ef4444" 
+                    strokeWidth={4} 
+                    dot={{ r: 6, fill: '#ef4444', strokeWidth: 2, stroke: '#fff' }} 
+                    activeDot={{ r: 8 }} 
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="text-sm text-gray-500 mt-4 text-center">
+              *A taxa de evasão considera alunos que abandonaram o curso ou estouraram o limite de 25% de faltas.
+            </div>
+          </div>
+        </div>
+
+        {/* ÁREA INFERIOR MANTIDA PARA AÇÕES RÁPIDAS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           {/* Deixei o quadro de ações rápidas aqui, você pode adicionar outras funções no futuro */}
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* MODAIS DE DETALHAMENTO */}
+      {/* ========================================================= */}
+
+      {/* 1. Modal de ALUNOS */}
+      {activeModal === 'ALUNOS' && (
+        <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
+          <div className="modal-box w-11/12 max-w-5xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-2xl flex items-center gap-2"><GraduationCap className="text-primary"/> Lista de Alunos</h3>
+              <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
+            </div>
+            <div className="overflow-x-auto max-h-[60vh]">
+              <table className="table table-zebra w-full">
+                <thead className="bg-base-200 sticky top-0">
+                  <tr><th>RA</th><th>Nome</th><th>Email</th><th>Matérias</th><th>Freq. Geral</th></tr>
+                </thead>
+                <tbody>
+                  {detalhes.alunos.map((aluno: any) => (
+                    <tr key={aluno.id}>
+                      <td className="font-mono">{aluno.ra}</td>
+                      <td className="font-bold">{aluno.nome}</td>
+                      <td>{aluno.email}</td>
+                      <td><div className="badge badge-neutral">{aluno.qtdMaterias} matriculadas</div></td>
+                      <td><span className="text-success font-bold">{aluno.frequenciaGeral}%</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Modal de PROFESSORES */}
+      {activeModal === 'PROFESSORES' && (
+        <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
+          <div className="modal-box w-11/12 max-w-4xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-2xl flex items-center gap-2"><Users className="text-secondary"/> Corpo Docente</h3>
+              <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
+            </div>
+            <div className="overflow-x-auto max-h-[60vh]">
+              <table className="table table-zebra w-full">
+                <thead className="bg-base-200 sticky top-0">
+                  <tr><th>Nome</th><th>Email</th><th>Carga Horária</th></tr>
+                </thead>
+                <tbody>
+                  {detalhes.professores.map((prof: any) => (
+                    <tr key={prof.id}>
+                      <td className="font-bold">{prof.nome}</td>
+                      <td>{prof.email}</td>
+                      <td><div className="badge badge-secondary">{prof.qtdMaterias} matérias lecionadas</div></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Modal de TURMAS */}
+      {activeModal === 'TURMAS' && (
+        <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
+          <div className="modal-box w-11/12 max-w-6xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-2xl flex items-center gap-2"><BookOpen className="text-accent"/> Turmas Ativas</h3>
+              <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
+            </div>
+            <div className="overflow-x-auto max-h-[60vh]">
+              <table className="table table-zebra w-full text-sm">
+                <thead className="bg-base-200 sticky top-0">
+                  <tr><th>Disciplina</th><th>Professor</th><th>Horário</th><th>Alunos</th><th>Geolocalização</th></tr>
+                </thead>
+                <tbody>
+                  {detalhes.turmas.map((turma: any) => (
+                    <tr key={turma.id}>
+                      <td className="font-bold">{turma.nome}<br/><span className="text-xs font-normal text-gray-500">{turma.totalAulas} aulas no semestre</span></td>
+                      <td>{turma.professor}</td>
+                      <td>{turma.diaSemana !== undefined ? diasSemana[turma.diaSemana] : '-'} às {turma.horarioInicio}</td>
+                      <td><div className="badge badge-accent">{turma.qtdAlunos} matriculados</div></td>
+                      <td>
+                        <div className="flex flex-col text-xs text-gray-500">
+                          <span className="flex items-center gap-1"><MapPin size={12}/> Raio: 50m</span>
+                          <span>Lat: {turma.lat?.toString().substring(0,8)}</span>
+                          <span>Lon: {turma.long?.toString().substring(0,8)}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Modal de ALUNOS EM RISCO */}
+      {activeModal === 'RISCO' && (
+        <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
+          <div className="modal-box w-11/12 max-w-5xl border-t-8 border-error">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-2xl flex items-center gap-2 text-error"><AlertTriangle/> Alertas de Frequência (&lt; 75%)</h3>
+              <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
+            </div>
+            <div className="overflow-x-auto max-h-[60vh]">
+              <table className="table table-zebra w-full">
+                <thead className="bg-base-200 sticky top-0">
+                  <tr><th>RA</th><th>Aluno</th><th>Email</th><th>Disciplina</th><th>Frequência</th></tr>
+                </thead>
+                <tbody>
+                  {detalhes.risco.map((risco: any) => (
+                    <tr key={risco.id}>
+                      <td className="font-mono">{risco.ra}</td>
+                      <td className="font-bold">{risco.nome}</td>
+                      <td>{risco.email}</td>
+                      <td>{risco.turma}</td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <progress className="progress progress-error w-16" value={risco.frequencia} max="100"></progress>
+                          <span className="text-error font-bold text-sm">{risco.frequencia}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {detalhes.risco.length === 0 && (
+                    <tr><td colSpan={5} className="text-center py-8 text-success font-bold">Nenhum aluno em risco no momento! 🎉</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

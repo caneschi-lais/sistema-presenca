@@ -103,11 +103,4 @@ npm install
 npm run dev
 (O frontend rodará em http://localhost:5173)
 
-### 3. Credenciais de Teste
-
-#O script de seed cria automaticamente os seguintes usuários para você testar todas as funcionalidades:
-Perfil  Email   Senha
-Aluno   aluno@fatec.sp.gov.br  123
-Professor   prof@fatec.sp.gov.br    123
-Coordenador coord@fatec.sp.gov.br   123
 

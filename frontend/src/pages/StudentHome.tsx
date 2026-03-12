@@ -1,56 +1,73 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, AlertTriangle, BookOpen, LogOut, Clock, Smartphone } from 'lucide-react'; // Add Smartphone icon
-import { toast } from 'react-toastify';
-// 1. Importar a biblioteca de segurança
-import FingerprintJS from '@fingerprintjs/fingerprintjs';
+
+// Tipagem simples para as turmas que vêm do backend
+interface TurmaDashboard {
+  turmaId: string;
+  nome: string;
+  presencas: number;
+  faltas: number;
+  totalAulas: number;
+  frequencia: number;
+  status: string;
+}
 
 export default function StudentHome() {
-  const user = JSON.parse(localStorage.getItem('geoClassUser') || '{}');
   const navigate = useNavigate();
-  
-  const [materias, setMaterias] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  // 2. Estado para guardar a digital do celular
-  const [deviceId, setDeviceId] = useState('');
+  const [turmas, setTurmas] = useState<TurmaDashboard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mensagem, setMensagem] = useState<{ texto: string; tipo: 'success' | 'error' | 'info' } | null>(null);
 
-  useEffect(() => {
-    if (!user.id) return;
-    
-    // Carrega Dashboard
-    fetch(`http://localhost:3000/aluno/${user.id}/dashboard`)
-      .then(res => res.json())
-      .then(data => setMaterias(data))
-      .catch(err => console.error("Erro dashboard", err));
+  // Pega os dados do usuário logado
+  const userString = localStorage.getItem('geoClassUser');
+  const user = userString ? JSON.parse(userString) : null;
 
-    // 3. Gera a Digital do Dispositivo (Fingerprint)
-    const carregarSeguranca = async () => {
-      const fp = await FingerprintJS.load();
-      const { visitorId } = await fp.get();
-      setDeviceId(visitorId);
-      console.log("Device ID:", visitorId); // Para você ver no console
-    };
-    carregarSeguranca();
-
-  }, [user.id]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('geoClassUser');
-    navigate('/'); 
+  // Função para gerar ou recuperar um ID único do dispositivo (para evitar fraudes)
+  const getDeviceId = () => {
+    let deviceId = localStorage.getItem('geoClassDeviceId');
+    if (!deviceId) {
+      deviceId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+      localStorage.setItem('geoClassDeviceId', deviceId);
+    }
+    return deviceId;
   };
 
-  const registrarPresenca = (turmaId: string) => {
-    setLoading(true);
-    const toastId = toast.loading("Validando dispositivo e local...");
+  useEffect(() => {
+    if (!user || user.perfil !== 'ALUNO') {
+      navigate('/');
+      return;
+    }
+    carregarDashboard();
+  }, []);
 
-    if (!navigator.geolocation) {
-      toast.update(toastId, { render: "GPS desligado.", type: "error", isLoading: false, autoClose: 3000 });
+  const carregarDashboard = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/aluno/${user.id}/dashboard`);
+      const data = await response.json();
+      setTurmas(data);
+    } catch (error) {
+      console.error("Erro ao buscar turmas:", error);
+      setMensagem({ texto: 'Erro ao carregar suas disciplinas.', tipo: 'error' });
+    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarcarPresenca = (turmaId: string) => {
+    setMensagem({ texto: 'Buscando sua localização via GPS...', tipo: 'info' });
+
+    // Verifica se o navegador suporta geolocalização
+    if (!navigator.geolocation) {
+      setMensagem({ texto: 'Seu navegador não suporta geolocalização.', tipo: 'error' });
       return;
     }
 
+    // Pede a localização
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      async (position) => {
+        const lat = position.coords.latitude;
+        const long = position.coords.longitude;
+
         try {
           const response = await fetch('http://localhost:3000/registrar-presenca', {
             method: 'POST',
@@ -58,127 +75,99 @@ export default function StudentHome() {
             body: JSON.stringify({
               alunoId: user.id,
               turmaId: turmaId,
-              lat: pos.coords.latitude,
-              long: pos.coords.longitude,
-              deviceId: deviceId // 4. Envia o ID do celular
+              lat: lat,
+              long: long,
+              deviceId: getDeviceId()
             })
           });
-          
+
           const data = await response.json();
 
           if (response.ok) {
-            toast.update(toastId, { 
-              render: "Presença Registrada! 🎉", type: "success", isLoading: false, autoClose: 3000 
-            });
-            setTimeout(() => window.location.reload(), 2000);
+            setMensagem({ texto: '✅ Presença garantida com sucesso!', tipo: 'success' });
+            carregarDashboard(); // Atualiza os números de faltas e presenças
           } else {
-            // Tratamento de Erros Específicos
-            if (data.fraude) {
-              toast.update(toastId, { 
-                render: "⛔ BLOQUEIO DE SEGURANÇA: Este aparelho já registrou presença para outro aluno.", 
-                type: "error", isLoading: false, autoClose: 6000 
-              });
-            } else if (data.atraso) {
-              toast.update(toastId, { 
-                render: "Falta por Atraso (>15min).", type: "error", isLoading: false, autoClose: 5000 
-              });
-            } else {
-              toast.update(toastId, { 
-                render: data.error || "Erro.", type: "warning", isLoading: false, autoClose: 4000 
-              });
-            }
+            setMensagem({ texto: `❌ ${data.error}`, tipo: 'error' });
           }
-        } catch (e) {
-          toast.update(toastId, { render: "Erro de conexão.", type: "error", isLoading: false, autoClose: 3000 });
-        } finally {
-          setLoading(false);
+        } catch (error) {
+          setMensagem({ texto: 'Erro de conexão com o servidor.', tipo: 'error' });
         }
       },
-      (err) => {
-        toast.update(toastId, { render: "Erro de Permissão GPS.", type: "error", isLoading: false, autoClose: 3000 });
-        setLoading(false);
+      (error) => {
+        console.error(error);
+        setMensagem({ texto: 'Você precisa permitir o acesso à localização para marcar presença.', tipo: 'error' });
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
-  // ... O return (JSX) continua igual ao anterior ...
-  // Apenas certifique-se de manter o return do passo anterior (StudentHome)
+  const sair = () => {
+    localStorage.clear();
+    navigate('/');
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
+
   return (
-    <div className="min-h-screen bg-base-200 pb-10">
-     {/* --- NOVA NAVBAR MODERNA (ALUNO) --- */}
-<div className="navbar bg-gradient-to-r from-primary to-[#0077b6] text-primary-content shadow-lg px-4 sm:px-8">
-  <div className="flex-1 flex items-center gap-3">
-    <img src="/logo.png" className="h-10 w-auto" alt="GeoClass" />
-    <div>
-      <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-        GeoClass
-        {/* Usei uma cor neutra para o aluno para não chamar tanta atenção */}
-        <span className="badge badge-ghost text-primary-content font-bold bg-white/20 border-none">Aluno</span>
-      </h1>
-    </div>
-  </div>
-
-  <div className="flex-none gap-4">
-    <div className="hidden sm:block text-right leading-tight">
-    </div>
-
-    <div className="dropdown dropdown-end">
-      {/* Usei um anel branco (ring-white) para o aluno */}
-      <label tabIndex={0} className="btn btn-ghost btn-circle avatar hover:ring-2 hover:ring-white transition-all">
-        <div className="w-11 rounded-full ring ring-white ring-opacity-50 ring-offset-base-100 ring-offset-2">
-          <div className="bg-primary-focus text-white w-full h-full flex items-center justify-center font-bold text-lg">
-            {user.nome?.charAt(0)}
-          </div>
+    <div className="min-h-screen bg-base-200 p-4 md:p-8">
+      {/* Cabeçalho */}
+      <div className="max-w-4xl mx-auto flex justify-between items-center bg-base-100 p-4 rounded-xl shadow-sm mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-base-content">Olá, {user?.nome.split(' ')[0]}!</h1>
+          <p className="text-sm text-gray-500">RA: {user?.ra}</p>
         </div>
-      </label>
-      <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-base-content">
-        <li className="menu-title sm:hidden"><span>RA: {user.ra}</span></li>
-        <li><a onClick={() => navigate('/perfil')} className="justify-between">Meu Perfil</a></li>
-        <li><a onClick={() => navigate('/historico')} className="justify-between">Histórico de Presenças</a></li>
-        <li><a onClick={() => navigate('/configuracoes')}>Configurações</a></li>
-        <div className="divider my-0"></div>
-        <li><button onClick={handleLogout} className="text-error font-bold hover:bg-error/10">Sair da Conta</button></li>
-      </ul>
-    </div>
-  </div>
-</div>
-{/* --- FIM DA NOVA NAVBAR --- */}
+        <button onClick={sair} className="btn btn-outline btn-error btn-sm">Sair</button>
+      </div>
 
-      <div className="container mx-auto px-4 mt-8">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2"><BookOpen /> Minhas Matérias</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {materias.map((materia) => (
-            <div key={materia.turmaId} className="card bg-base-100 shadow-xl border border-gray-100">
+      {/* Alertas de Feedback Visual */}
+      {mensagem && (
+        <div className={`max-w-4xl mx-auto alert mb-6 ${
+          mensagem.tipo === 'success' ? 'alert-success' : 
+          mensagem.tipo === 'error' ? 'alert-error' : 'alert-info'
+        }`}>
+          <span className="font-medium text-white">{mensagem.texto}</span>
+        </div>
+      )}
+
+      {/* Lista de Turmas */}
+      <div className="max-w-4xl mx-auto grid gap-6 md:grid-cols-2">
+        {turmas.length === 0 ? (
+          <p className="text-center text-gray-500 col-span-2">Você não está matriculado em nenhuma turma.</p>
+        ) : (
+          turmas.map(turma => (
+            <div key={turma.turmaId} className="card bg-base-100 shadow-md">
               <div className="card-body">
-                <div className="flex justify-between items-start">
-                    <h3 className="card-title text-primary">{materia.nome}</h3>
-                    {deviceId && <div className="badge badge-success badge-outline badge-xs gap-1"><Smartphone size={10}/> Seguro</div>}
-                </div>
-                <div className="divider my-1"></div>
-                {/* ... (Resto do card igual: alertas, progresso, botão) ... */}
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
-                  <span>Presenças: <strong>{materia.presencas}</strong></span>
-                  <span>Faltas: <strong>{materia.faltas}</strong></span>
-                </div>
-                <div className="w-full">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-xs font-bold">Frequência</span>
-                    <span className={`text-xs font-bold ${materia.frequencia < 75 ? 'text-error' : 'text-success'}`}>{materia.frequencia}%</span>
-                  </div>
-                  <progress className={`progress w-full h-3 ${materia.frequencia < 75 ? 'progress-error' : 'progress-success'}`} value={materia.frequencia} max="100"></progress>
-                </div>
+                <h2 className="card-title text-primary">{turma.nome}</h2>
                 
-                {/* Botão de Ação */}
+                <div className="flex justify-between mt-2 text-sm">
+                  <div>
+                    <p className="text-gray-500">Presenças</p>
+                    <p className="font-bold text-lg text-success">{turma.presencas}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Faltas</p>
+                    <p className="font-bold text-lg text-error">{turma.faltas}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Frequência</p>
+                    <p className={`font-bold text-lg ${turma.frequencia >= 75 ? 'text-success' : 'text-warning'}`}>
+                      {turma.frequencia}%
+                    </p>
+                  </div>
+                </div>
+
                 <div className="card-actions justify-end mt-4">
-                    <button className="btn btn-primary w-full gap-2" onClick={() => registrarPresenca(materia.turmaId)} disabled={loading}>
-                      <MapPin size={18} /> {loading ? 'Validando...' : 'Registrar Presença'}
-                    </button>
+                  <button 
+                    onClick={() => handleMarcarPresenca(turma.turmaId)} 
+                    className="btn btn-primary w-full"
+                  >
+                    📍 Marcar Presença
+                  </button>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          ))
+        )}
       </div>
     </div>
   );
