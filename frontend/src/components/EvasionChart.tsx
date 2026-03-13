@@ -1,0 +1,1 @@
+{/*bloco do gráfico de evasão que criamos. Tirar aquele código visual do Recharts de dentro do CoordHome deixaria o arquivo bem mais curto.*/}

@@ -1,0 +1,1 @@
+{/*selo de "Presente", "Atrasado" ou "Falta" que aparece nas tabelas do professor e no histórico do aluno. */}

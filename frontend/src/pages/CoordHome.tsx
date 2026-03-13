@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, BookOpen, AlertTriangle, GraduationCap, BarChart3, Settings, LogOut, ChevronRight, X, MapPin
+import { Users, BookOpen, AlertTriangle, GraduationCap, BarChart3, Settings, ChevronRight, X, MapPin
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -52,29 +52,9 @@ export default function CoordHome() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
-  };
-
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-base-200"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
 
   return (
-    <div className="min-h-screen bg-base-200 pb-10">
-      {/* NAVBAR */}
-      <div className="navbar bg-neutral text-neutral-content shadow-lg px-4 sm:px-8">
-        <div className="flex-1 flex items-center gap-3">
-          <img src="/logo.png" className="h-10 w-auto brightness-0 invert" alt="GeoClass" />
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            GeoClass <span className="badge badge-warning text-warning-content font-bold border-none">Gestão</span>
-          </h1>
-        </div>
-        <div className="flex-none gap-4">
-          <span className="hidden md:inline text-sm font-medium">Olá, Coordenador(a)</span>
-          <button onClick={handleLogout} className="btn btn-ghost btn-circle text-error"><LogOut size={20} /></button>
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 mt-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-base-content flex items-center gap-2">
@@ -180,144 +160,141 @@ export default function CoordHome() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
            {/* Deixei o quadro de ações rápidas aqui, você pode adicionar outras funções no futuro */}
         </div>
+        {/* ========================================================= */}
+        {/* MODAIS DE DETALHAMENTO */}
+        {/* ========================================================= */}
+  
+        {/* 1. Modal de ALUNOS */}
+        {activeModal === 'ALUNOS' && (
+          <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
+            <div className="modal-box w-11/12 max-w-5xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-2xl flex items-center gap-2"><GraduationCap className="text-primary"/> Lista de Alunos</h3>
+                <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
+              </div>
+              <div className="overflow-x-auto max-h-[60vh]">
+                <table className="table table-zebra w-full">
+                  <thead className="bg-base-200 sticky top-0">
+                    <tr><th>RA</th><th>Nome</th><th>Email</th><th>Matérias</th><th>Freq. Geral</th></tr>
+                  </thead>
+                  <tbody>
+                    {detalhes.alunos.map((aluno: any) => (
+                      <tr key={aluno.id}>
+                        <td className="font-mono">{aluno.ra}</td>
+                        <td className="font-bold">{aluno.nome}</td>
+                        <td>{aluno.email}</td>
+                        <td><div className="badge badge-neutral">{aluno.qtdMaterias} matriculadas</div></td>
+                        <td><span className="text-success font-bold">{aluno.frequenciaGeral}%</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+  
+        {/* 2. Modal de PROFESSORES */}
+        {activeModal === 'PROFESSORES' && (
+          <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
+            <div className="modal-box w-11/12 max-w-4xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-2xl flex items-center gap-2"><Users className="text-secondary"/> Corpo Docente</h3>
+                <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
+              </div>
+              <div className="overflow-x-auto max-h-[60vh]">
+                <table className="table table-zebra w-full">
+                  <thead className="bg-base-200 sticky top-0">
+                    <tr><th>Nome</th><th>Email</th><th>Carga Horária</th></tr>
+                  </thead>
+                  <tbody>
+                    {detalhes.professores.map((prof: any) => (
+                      <tr key={prof.id}>
+                        <td className="font-bold">{prof.nome}</td>
+                        <td>{prof.email}</td>
+                        <td><div className="badge badge-secondary">{prof.qtdMaterias} matérias lecionadas</div></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+  
+        {/* 3. Modal de TURMAS */}
+        {activeModal === 'TURMAS' && (
+          <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
+            <div className="modal-box w-11/12 max-w-6xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-2xl flex items-center gap-2"><BookOpen className="text-accent"/> Turmas Ativas</h3>
+                <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
+              </div>
+              <div className="overflow-x-auto max-h-[60vh]">
+                <table className="table table-zebra w-full text-sm">
+                  <thead className="bg-base-200 sticky top-0">
+                    <tr><th>Disciplina</th><th>Professor</th><th>Horário</th><th>Alunos</th><th>Geolocalização</th></tr>
+                  </thead>
+                  <tbody>
+                    {detalhes.turmas.map((turma: any) => (
+                      <tr key={turma.id}>
+                        <td className="font-bold">{turma.nome}<br/><span className="text-xs font-normal text-gray-500">{turma.totalAulas} aulas no semestre</span></td>
+                        <td>{turma.professor}</td>
+                        <td>{turma.diaSemana !== undefined ? diasSemana[turma.diaSemana] : '-'} às {turma.horarioInicio}</td>
+                        <td><div className="badge badge-accent">{turma.qtdAlunos} matriculados</div></td>
+                        <td>
+                          <div className="flex flex-col text-xs text-gray-500">
+                            <span className="flex items-center gap-1"><MapPin size={12}/> Raio: 50m</span>
+                            <span>Lat: {turma.lat?.toString().substring(0,8)}</span>
+                            <span>Lon: {turma.long?.toString().substring(0,8)}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+  
+        {/* 4. Modal de ALUNOS EM RISCO */}
+        {activeModal === 'RISCO' && (
+          <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
+            <div className="modal-box w-11/12 max-w-5xl border-t-8 border-error">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-2xl flex items-center gap-2 text-error"><AlertTriangle/> Alertas de Frequência (&lt; 75%)</h3>
+                <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
+              </div>
+              <div className="overflow-x-auto max-h-[60vh]">
+                <table className="table table-zebra w-full">
+                  <thead className="bg-base-200 sticky top-0">
+                    <tr><th>RA</th><th>Aluno</th><th>Email</th><th>Disciplina</th><th>Frequência</th></tr>
+                  </thead>
+                  <tbody>
+                    {detalhes.risco.map((risco: any) => (
+                      <tr key={risco.id}>
+                        <td className="font-mono">{risco.ra}</td>
+                        <td className="font-bold">{risco.nome}</td>
+                        <td>{risco.email}</td>
+                        <td>{risco.turma}</td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <progress className="progress progress-error w-16" value={risco.frequencia} max="100"></progress>
+                            <span className="text-error font-bold text-sm">{risco.frequencia}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {detalhes.risco.length === 0 && (
+                      <tr><td colSpan={5} className="text-center py-8 text-success font-bold">Nenhum aluno em risco no momento! 🎉</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
       </div>
-
-      {/* ========================================================= */}
-      {/* MODAIS DE DETALHAMENTO */}
-      {/* ========================================================= */}
-
-      {/* 1. Modal de ALUNOS */}
-      {activeModal === 'ALUNOS' && (
-        <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
-          <div className="modal-box w-11/12 max-w-5xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-2xl flex items-center gap-2"><GraduationCap className="text-primary"/> Lista de Alunos</h3>
-              <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
-            </div>
-            <div className="overflow-x-auto max-h-[60vh]">
-              <table className="table table-zebra w-full">
-                <thead className="bg-base-200 sticky top-0">
-                  <tr><th>RA</th><th>Nome</th><th>Email</th><th>Matérias</th><th>Freq. Geral</th></tr>
-                </thead>
-                <tbody>
-                  {detalhes.alunos.map((aluno: any) => (
-                    <tr key={aluno.id}>
-                      <td className="font-mono">{aluno.ra}</td>
-                      <td className="font-bold">{aluno.nome}</td>
-                      <td>{aluno.email}</td>
-                      <td><div className="badge badge-neutral">{aluno.qtdMaterias} matriculadas</div></td>
-                      <td><span className="text-success font-bold">{aluno.frequenciaGeral}%</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       )}
-
-      {/* 2. Modal de PROFESSORES */}
-      {activeModal === 'PROFESSORES' && (
-        <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
-          <div className="modal-box w-11/12 max-w-4xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-2xl flex items-center gap-2"><Users className="text-secondary"/> Corpo Docente</h3>
-              <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
-            </div>
-            <div className="overflow-x-auto max-h-[60vh]">
-              <table className="table table-zebra w-full">
-                <thead className="bg-base-200 sticky top-0">
-                  <tr><th>Nome</th><th>Email</th><th>Carga Horária</th></tr>
-                </thead>
-                <tbody>
-                  {detalhes.professores.map((prof: any) => (
-                    <tr key={prof.id}>
-                      <td className="font-bold">{prof.nome}</td>
-                      <td>{prof.email}</td>
-                      <td><div className="badge badge-secondary">{prof.qtdMaterias} matérias lecionadas</div></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. Modal de TURMAS */}
-      {activeModal === 'TURMAS' && (
-        <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
-          <div className="modal-box w-11/12 max-w-6xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-2xl flex items-center gap-2"><BookOpen className="text-accent"/> Turmas Ativas</h3>
-              <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
-            </div>
-            <div className="overflow-x-auto max-h-[60vh]">
-              <table className="table table-zebra w-full text-sm">
-                <thead className="bg-base-200 sticky top-0">
-                  <tr><th>Disciplina</th><th>Professor</th><th>Horário</th><th>Alunos</th><th>Geolocalização</th></tr>
-                </thead>
-                <tbody>
-                  {detalhes.turmas.map((turma: any) => (
-                    <tr key={turma.id}>
-                      <td className="font-bold">{turma.nome}<br/><span className="text-xs font-normal text-gray-500">{turma.totalAulas} aulas no semestre</span></td>
-                      <td>{turma.professor}</td>
-                      <td>{turma.diaSemana !== undefined ? diasSemana[turma.diaSemana] : '-'} às {turma.horarioInicio}</td>
-                      <td><div className="badge badge-accent">{turma.qtdAlunos} matriculados</div></td>
-                      <td>
-                        <div className="flex flex-col text-xs text-gray-500">
-                          <span className="flex items-center gap-1"><MapPin size={12}/> Raio: 50m</span>
-                          <span>Lat: {turma.lat?.toString().substring(0,8)}</span>
-                          <span>Lon: {turma.long?.toString().substring(0,8)}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Modal de ALUNOS EM RISCO */}
-      {activeModal === 'RISCO' && (
-        <div className="modal modal-open bg-black/50 backdrop-blur-sm z-50">
-          <div className="modal-box w-11/12 max-w-5xl border-t-8 border-error">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-2xl flex items-center gap-2 text-error"><AlertTriangle/> Alertas de Frequência (&lt; 75%)</h3>
-              <button className="btn btn-ghost btn-circle" onClick={() => setActiveModal(null)}><X /></button>
-            </div>
-            <div className="overflow-x-auto max-h-[60vh]">
-              <table className="table table-zebra w-full">
-                <thead className="bg-base-200 sticky top-0">
-                  <tr><th>RA</th><th>Aluno</th><th>Email</th><th>Disciplina</th><th>Frequência</th></tr>
-                </thead>
-                <tbody>
-                  {detalhes.risco.map((risco: any) => (
-                    <tr key={risco.id}>
-                      <td className="font-mono">{risco.ra}</td>
-                      <td className="font-bold">{risco.nome}</td>
-                      <td>{risco.email}</td>
-                      <td>{risco.turma}</td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <progress className="progress progress-error w-16" value={risco.frequencia} max="100"></progress>
-                          <span className="text-error font-bold text-sm">{risco.frequencia}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {detalhes.risco.length === 0 && (
-                    <tr><td colSpan={5} className="text-center py-8 text-success font-bold">Nenhum aluno em risco no momento! 🎉</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

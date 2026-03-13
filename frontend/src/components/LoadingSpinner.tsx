@@ -1,0 +1,1 @@
+{/* ícone de carregamento*/}

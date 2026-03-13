@@ -1,0 +1,1 @@
+{/*cartão individual de cada disciplina que aparece para o Aluno e para o Professor. Para o Aluno, ele mostra a disciplina, o professor e a porcentagem de presença. Para o Professor, ele mostra a disciplina, a porcentagem de presença e um botão para acessar a tabela de presença.*/}

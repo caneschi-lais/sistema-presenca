@@ -1,0 +1,1 @@
+{/* estrutura base de janela pop-up. Hoje você tem vários modais repetindo código de fundo escuro e botão de fechar*/}
