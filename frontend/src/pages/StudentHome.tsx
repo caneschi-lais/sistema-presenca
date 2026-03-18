@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ActionButton from '../components/ActionButton';
 
 interface TurmaDashboard {
   turmaId: string;
@@ -133,12 +134,12 @@ export default function StudentHome() {
                 </div>
 
                 <div className="card-actions justify-end mt-4">
-                  <button 
+                  <ActionButton 
+                    title="Marcar Presença"
+                    icon="📍"
+                    variant="primary"
                     onClick={() => handleMarcarPresenca(turma.turmaId)} 
-                    className="btn btn-primary w-full shadow-md"
-                  >
-                    📍 Marcar Presença
-                  </button>
+                  />
                 </div>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, BookOpen, AlertTriangle, GraduationCap, BarChart3, Settings, ChevronRight, X, MapPin
+import ActionButton from '../components/ActionButton';
+import { Users, BookOpen, AlertTriangle, GraduationCap, BarChart3, X, MapPin, FileText, Settings
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -157,9 +158,45 @@ export default function CoordHome() {
         </div>
 
         {/* ÁREA INFERIOR MANTIDA PARA AÇÕES RÁPIDAS */}
+        {/* ÁREA INFERIOR MANTIDA PARA AÇÕES RÁPIDAS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           {/* Deixei o quadro de ações rápidas aqui, você pode adicionar outras funções no futuro */}
+          <div className="card bg-base-100 shadow-sm border border-gray-100">
+            <div className="card-body">
+              <h3 className="card-title text-base-content mb-4 flex items-center gap-2">
+                <Settings size={20} /> Gestão Acadêmica
+              </h3>
+              
+              <div className="flex flex-col gap-3">
+                <ActionButton 
+                  title="Gerenciar Turmas" 
+                  description="Criar turmas e configurar geolocalização"
+                  variant="outline"
+                  icon={<BookOpen size={20} />}
+                  showChevron={true}
+                  onClick={() => console.log('Abrir turmas')} 
+                />
+                
+                <ActionButton 
+                  title="Cadastrar Docentes" 
+                  description="Adicionar novos professores ao sistema"
+                  variant="outline"
+                  icon={<Users size={20} />}
+                  showChevron={true}
+                  onClick={() => console.log('Abrir professores')} 
+                />
+
+                <ActionButton 
+                  title="Relatórios Gerais" 
+                  description="Exportar dados de presença e faltas"
+                  variant="outline"
+                  icon={<FileText size={20} />}
+                  showChevron={true}
+                />
+              </div>
+            </div>
+          </div>
         </div>
+        
         {/* ========================================================= */}
         {/* MODAIS DE DETALHAMENTO */}
         {/* ========================================================= */}

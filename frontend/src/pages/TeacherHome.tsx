@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import AttendanceTable from '../components/AttendanceTable';
 import { useNavigate } from 'react-router-dom';
+import ClassCard from '../components/ClassCard';
 import { 
   Users, Calendar, RefreshCw, X, 
   Clock, CheckCircle, Search, GraduationCap, ChevronLeft, ChevronRight, Mail 
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import ActionButton from '../components/ActionButton';
 
 export default function TeacherHome() {
   const user = JSON.parse(localStorage.getItem('geoClassUser') || '{}');
@@ -113,48 +116,46 @@ export default function TeacherHome() {
         </div>
       )}
 
-      {!loading && (
+          {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {turmas.map((turma) => (
-            <div key={turma.id} className="card bg-base-100 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
-              <div className="card-body p-6">
-                <div className="flex justify-between items-start">
-                  <div className="badge badge-primary badge-outline text-xs font-bold gap-1">
-                     {turma.diaSemana !== undefined ? diasSemana[turma.diaSemana] : 'Dia a definir'}
-                  </div>
+            <ClassCard 
+              key={turma.id}
+              title={turma.nome}
+              topBadge={
+                <span className="badge badge-primary badge-outline text-xs font-bold gap-1">
+                  {turma.diaSemana !== undefined ? diasSemana[turma.diaSemana] : 'Dia a definir'}
+                </span>
+              }
+              actions={
+                <>
+                  <ActionButton 
+                    title="Chamada do Dia" 
+                    icon={<CheckCircle size={18} />} 
+                    onClick={() => verChamada(turma)} 
+                  />
+                  <ActionButton 
+                    title="Ver Lista de Alunos" 
+                    icon={<GraduationCap size={18} />} 
+                    variant="outline"
+                    className="btn-secondary" // Força a cor secundária no modo outline
+                    onClick={() => abrirListaAlunos(turma)} 
+                  />
+                </>
+              }
+            >
+              {/* O QUE FICA DENTRO DO CARTÃO DO PROFESSOR: */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-accent" />
+                  <span className="font-medium">Início: {turma.horarioInicio || '--:--'}</span>
                 </div>
-
-                <h3 className="card-title text-xl text-primary mt-2">{turma.nome}</h3>
-                <div className="divider my-2"></div>
-
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Clock size={16} className="text-accent" />
-                    <span className="font-medium">Início: {turma.horarioInicio || '--:--'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users size={16} className="text-secondary" />
-                    <span>{turma._count?.alunos || 0} Alunos matriculados</span>
-                  </div>
-                </div>
-
-                <div className="card-actions justify-end mt-6 flex-col gap-2">
-                  <button 
-                    className="btn btn-primary w-full gap-2 shadow-md"
-                    onClick={() => verChamada(turma)}
-                  >
-                    <CheckCircle size={18} /> Chamada do Dia
-                  </button>
-                  
-                  <button 
-                    className="btn btn-secondary btn-outline w-full gap-2"
-                    onClick={() => abrirListaAlunos(turma)}
-                  >
-                    <GraduationCap size={18} /> Ver Lista de Alunos
-                  </button>
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-secondary" />
+                  <span>{turma._count?.alunos || 0} Alunos matriculados</span>
                 </div>
               </div>
-            </div>
+            </ClassCard>
           ))}
         </div>
       )}
@@ -178,28 +179,12 @@ export default function TeacherHome() {
                 </button>
               </div>
             </div>
+            
+            {/* VEJA COMO FICOU LIMPO AQUI EMBAIXO: */}
             <div className="p-6 bg-base-100">
-                <div className="overflow-x-auto h-80 border border-base-200 rounded-lg">
-                  <table className="table table-zebra w-full header-fixed">
-                    <thead className="bg-base-200 text-gray-600 sticky top-0 z-10">
-                      <tr><th>Horário</th><th>RA</th><th>Aluno</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                      {presencas.map((p) => (
-                        <tr key={p.logId}>
-                          <td className="font-mono text-xs">{new Date(p.horario).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                          <td>{p.ra}</td>
-                          <td className="font-bold">{p.aluno}</td>
-                          <td><span className="badge badge-success badge-sm border-none text-white">Presente</span></td>
-                        </tr>
-                      ))}
-                      {!loadingChamada && presencas.length === 0 && (
-                        <tr><td colSpan={4} className="text-center py-10 text-gray-400">Ninguém registrou presença hoje.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <AttendanceTable presencas={presencas} loading={loadingChamada} />
             </div>
+
           </div>
         </div>
       )}
