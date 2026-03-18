@@ -24,17 +24,17 @@ export default function Layout() {
   return (
     // Fundo principal branco
     <div className="min-h-screen bg-gray-50">
-      
+
       {/* NAVBAR FIXA: Usando o padrão DaisyUI para alinhar sem encavalar */}
       <div className="navbar bg-[#0077b6] text-white shadow-lg px-4 sm:px-8 relative z-50">
-        
+
         {/* ESQUERDA: Saudação e Info */}
         <div className="navbar-start flex-col items-start justify-center w-full sm:w-1/3">
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm md:text-base whitespace-nowrap">
               Olá, {user.nome?.split(' ')[0]}
             </span>
-            
+
             {/* Badges de Gestão/Docente (Ajustei o padding para não esticar a barra) */}
             {user.perfil === 'PROFESSOR' && (
               <span className="badge bg-[#06d6a0] text-white border-none text-xs font-bold py-3 shadow-sm">Docente</span>
@@ -43,7 +43,7 @@ export default function Layout() {
               <span className="badge bg-[#06d6a0] text-white border-none text-xs font-bold py-3 shadow-sm">Gestão</span>
             )}
           </div>
-          
+
           {/* RA abaixo do nome se for aluno */}
           {user.perfil === 'ALUNO' && (
             <span className="text-xs text-blue-200 mt-0.5 font-mono">RA: {user.ra}</span>
@@ -58,7 +58,7 @@ export default function Layout() {
 
         {/* DIREITA: Perfil e Botão Sair */}
         <div className="navbar-end flex justify-end items-center gap-1 sm:gap-4 w-full sm:w-1/3">
-          
+
           {/* Dropdown da Foto do Perfil */}
           <div className="dropdown dropdown-end">
             <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar hover:ring-2 hover:ring-[#06d6a0] transition-all">
@@ -69,11 +69,11 @@ export default function Layout() {
               </div>
             </div>
             <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-base-content font-medium">
-              <li><a onClick={() => navigate('/perfil')}><User size={16}/> Meu Perfil</a></li>
-              <li><a onClick={() => navigate('/configuracoes')}><SettingsIcon size={16}/> Configurações</a></li>
+              <li><a onClick={() => navigate('/perfil')}><User size={16} /> Meu Perfil</a></li>
+              <li><a onClick={() => navigate('/configuracoes')}><SettingsIcon size={16} /> Configurações</a></li>
             </ul>
           </div>
-          
+
           {/* Botão de Sair Fixo ao Lado */}
           <button onClick={handleLogout} title="Sair" className="btn btn-ghost btn-circle text-white hover:bg-red-500/80 ml-2">
             <LogOut size={20} />
@@ -85,7 +85,7 @@ export default function Layout() {
       <main className="pb-10 pt-6">
         <Outlet />
       </main>
-      
+
     </div>
   );
 }

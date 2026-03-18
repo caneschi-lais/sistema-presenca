@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Calendar, Clock, CheckCircle, XCircle, 
-  History as HistoryIcon, Smartphone, LogOut 
+import {
+  ArrowLeft, Calendar, Clock, CheckCircle, History as HistoryIcon, Smartphone
 } from 'lucide-react';
+import StatusBadge from '../components/StatusBadge';
 
 export default function History() {
   const user = JSON.parse(localStorage.getItem('geoClassUser') || '{}');
   const navigate = useNavigate();
-  
+
   const [historico, setHistorico] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +29,7 @@ export default function History() {
 
   return (
     <div className="min-h-screen bg-base-200 pb-10">
-      
+
       {/* --- NAVBAR DO ALUNO (Padrão) --- */}
       <div className="navbar bg-gradient-to-r from-primary to-[#0077b6] text-primary-content shadow-lg px-4 sm:px-8">
         <div className="flex-1 flex items-center gap-3">
@@ -39,26 +39,26 @@ export default function History() {
           </h1>
         </div>
         <div className="flex-none gap-4">
-            <div className="dropdown dropdown-end">
+          <div className="dropdown dropdown-end">
             <label tabIndex={0} className="btn btn-ghost btn-circle avatar hover:ring-2 hover:ring-white transition-all">
-                <div className="w-11 rounded-full ring ring-white ring-opacity-50 ring-offset-base-100 ring-offset-2">
+              <div className="w-11 rounded-full ring ring-white ring-opacity-50 ring-offset-base-100 ring-offset-2">
                 <div className="bg-primary-focus text-white w-full h-full flex items-center justify-center font-bold text-lg">
-                    {user.nome?.charAt(0)}
+                  {user.nome?.charAt(0)}
                 </div>
-                </div>
+              </div>
             </label>
             <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-xl menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-base-content">
-                <li><a onClick={() => navigate('/perfil')}>Meu Perfil</a></li>
-                <li><a onClick={() => navigate('/configuracoes')}>Configurações</a></li>
-                <div className="divider my-0"></div>
-                <li><button onClick={handleLogout} className="text-error font-bold">Sair da Conta</button></li>
+              <li><a onClick={() => navigate('/perfil')}>Meu Perfil</a></li>
+              <li><a onClick={() => navigate('/configuracoes')}>Configurações</a></li>
+              <div className="divider my-0"></div>
+              <li><button onClick={handleLogout} className="text-error font-bold">Sair da Conta</button></li>
             </ul>
-            </div>
+          </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 mt-8">
-        
+
         {/* Cabeçalho da Página */}
         <div className="flex items-center gap-4 mb-6">
           <button onClick={() => navigate(-1)} className="btn btn-circle btn-ghost bg-white shadow-sm hover:bg-gray-100">
@@ -98,7 +98,7 @@ export default function History() {
                           {new Date(log.data).toLocaleDateString()}
                         </div>
                       </td>
-                      
+
                       {/* Disciplina */}
                       <td>
                         <div className="font-bold text-primary">{log.disciplina}</div>
@@ -108,16 +108,20 @@ export default function History() {
                       <td>
                         <div className="flex items-center gap-2 font-mono text-xs">
                           <Clock size={14} className="text-gray-400" />
-                          {new Date(log.data).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          {new Date(log.data).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </td>
 
                       {/* Método (Segurança) */}
                       <td>
                         {log.deviceId ? (
-                          <div className="badge badge-ghost badge-sm gap-1 text-gray-500">
-                            <Smartphone size={10} /> App Seguro
-                          </div>
+                          <StatusBadge
+                            text="App Seguro"
+                            variant="ghost"
+                            size="sm"
+                            icon={<Smartphone size={12} />}
+                            className="text-gray-500"
+                          />
                         ) : (
                           <span className="text-xs text-gray-400">-</span>
                         )}
@@ -126,13 +130,17 @@ export default function History() {
                       {/* Status */}
                       <td>
                         {log.status === 'SINCRONIZADO' ? (
-                            <span className="badge badge-success gap-1 text-white font-bold">
-                                <CheckCircle size={12} /> Confirmado
-                            </span>
+                          <StatusBadge
+                            text="Confirmado"
+                            variant="success"
+                            icon={<CheckCircle size={14} />}
+                          />
                         ) : (
-                            <span className="badge badge-warning gap-1">
-                                <Clock size={12} /> Aguardando SIGA
-                            </span>
+                          <StatusBadge
+                            text="Aguardando SIGA"
+                            variant="warning"
+                            icon={<Clock size={14} />}
+                          />
                         )}
                       </td>
                     </tr>

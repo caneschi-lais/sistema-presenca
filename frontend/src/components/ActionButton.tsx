@@ -24,7 +24,7 @@ export default function ActionButton({
   showChevron = false,
   disabled = false,
 }: ActionButtonProps) {
-  
+
   // Define a classe da cor baseado na propriedade "variant"
   const variantClass = variant === 'outline' ? 'btn-outline' : `btn-${variant}`;
   const widthClass = fullWidth ? 'w-full' : '';
@@ -32,7 +32,7 @@ export default function ActionButton({
   // CENÁRIO 1: Botão com Descrição (Estilo Ações Rápidas do Coordenador)
   if (description) {
     return (
-      <button 
+      <button
         onClick={onClick}
         disabled={disabled}
         className={`btn ${variantClass} ${widthClass} justify-between h-auto py-3 ${className}`}
@@ -51,7 +51,7 @@ export default function ActionButton({
 
   // CENÁRIO 2: Botão Simples (Estilo "Marcar Presença" do Aluno)
   return (
-    <button 
+    <button
       onClick={onClick}
       disabled={disabled}
       className={`btn ${variantClass} ${widthClass} shadow-md ${className}`}

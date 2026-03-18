@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Moon, Sun, Bell, Globe, Shield, Smartphone, Monitor 
+import {
+  ArrowLeft, Moon, Sun, Bell, Globe, Shield, Smartphone, Monitor
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function Settings() {
   const navigate = useNavigate();
-  
+
   // Estados para as configurações (Lendo do localStorage ou usando padrão)
   const [theme, setTheme] = useState(localStorage.getItem('geoTheme') || 'geoclass');
   const [pushEnabled, setPushEnabled] = useState(localStorage.getItem('geoPush') === 'true');
@@ -45,7 +45,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
       <div className="card w-full max-w-2xl bg-base-100 shadow-xl overflow-hidden">
-        
+
         {/* Cabeçalho */}
         <div className="bg-gradient-to-r from-primary to-[#0077b6] p-6 text-primary-content flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="btn btn-circle btn-ghost text-white hover:bg-white/20">
@@ -72,9 +72,9 @@ export default function Settings() {
                   <p className="text-xs text-gray-500">Altere entre visual claro e noturno</p>
                 </div>
               </div>
-              <input 
-                type="checkbox" 
-                className="toggle toggle-primary" 
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
                 checked={theme === 'dark'}
                 onChange={handleToggleTheme}
               />
@@ -89,9 +89,9 @@ export default function Settings() {
             <div className="flex flex-col gap-2">
               <div className="form-control">
                 <label className="label cursor-pointer justify-start gap-4">
-                  <input 
-                    type="checkbox" 
-                    className="checkbox checkbox-primary" 
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-primary"
                     checked={pushEnabled}
                     onChange={(e) => handleSaveToggle('geoPush', e.target.checked, setPushEnabled, 'Notificações Push')}
                   />
@@ -100,9 +100,9 @@ export default function Settings() {
               </div>
               <div className="form-control">
                 <label className="label cursor-pointer justify-start gap-4">
-                  <input 
-                    type="checkbox" 
-                    className="checkbox checkbox-primary" 
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-primary"
                     checked={emailEnabled}
                     onChange={(e) => handleSaveToggle('geoEmail', e.target.checked, setEmailEnabled, 'Emails')}
                   />
@@ -117,8 +117,8 @@ export default function Settings() {
             <h3 className="text-lg font-bold flex items-center gap-2 text-primary mb-3">
               <Globe size={20} /> Região
             </h3>
-            <select 
-              className="select select-bordered w-full max-w-xs" 
+            <select
+              className="select select-bordered w-full max-w-xs"
               value={language}
               onChange={handleLanguageChange}
             >

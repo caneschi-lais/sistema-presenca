@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ActionButton from '../components/ActionButton';
+import EmptyState from '../components/EmptyState';
+import { BookX } from 'lucide-react';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface TurmaDashboard {
   turmaId: string;
@@ -78,7 +81,7 @@ export default function StudentHome() {
 
           if (response.ok) {
             setMensagem({ texto: '✅ Presença garantida com sucesso!', tipo: 'success' });
-            carregarDashboard(); 
+            carregarDashboard();
           } else {
             setMensagem({ texto: `❌ ${data.error}`, tipo: 'error' });
           }
@@ -94,28 +97,33 @@ export default function StudentHome() {
     );
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
+  if (loading) return <LoadingSpinner text="A carregar o seu diário de classe..." />;
 
   return (
     <div className="container mx-auto px-4 mt-8">
       {mensagem && (
-        <div className={`max-w-4xl mx-auto alert mb-6 shadow-sm ${
-          mensagem.tipo === 'success' ? 'alert-success' : 
+        <div className={`max-w-4xl mx-auto alert mb-6 shadow-sm ${mensagem.tipo === 'success' ? 'alert-success' :
           mensagem.tipo === 'error' ? 'alert-error' : 'alert-info'
-        }`}>
+          }`}>
           <span className="font-medium text-white">{mensagem.texto}</span>
         </div>
       )}
 
       <div className="max-w-4xl mx-auto grid gap-6 md:grid-cols-2">
         {turmas.length === 0 ? (
-          <p className="text-center text-gray-500 col-span-2 py-10">Você não está matriculado em nenhuma turma.</p>
+          <div className="col-span-1 md:col-span-2">
+            <EmptyState
+              title="Nenhuma disciplina"
+              message="Você não está matriculado em nenhuma turma no momento."
+              icon={<BookX size={48} />}
+            />
+          </div>
         ) : (
           turmas.map(turma => (
             <div key={turma.turmaId} className="card bg-base-100 shadow-md border border-gray-100">
               <div className="card-body">
                 <h2 className="card-title text-primary">{turma.nome}</h2>
-                
+
                 <div className="flex justify-between mt-2 text-sm">
                   <div>
                     <p className="text-gray-500">Presenças</p>
@@ -134,11 +142,11 @@ export default function StudentHome() {
                 </div>
 
                 <div className="card-actions justify-end mt-4">
-                  <ActionButton 
+                  <ActionButton
                     title="Marcar Presença"
                     icon="📍"
                     variant="primary"
-                    onClick={() => handleMarcarPresenca(turma.turmaId)} 
+                    onClick={() => handleMarcarPresenca(turma.turmaId)}
                   />
                 </div>
               </div>

@@ -58,19 +58,19 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center p-4 py-10">
-      
+
       <div className="card w-full max-w-3xl bg-base-100 shadow-2xl overflow-hidden rounded-2xl">
-        
+
         {/* CABEÇALHO ALTERADO: Flexbox para controle total do espaçamento */}
         {/* 'gap-6' é o espaçamento entre a seta e o texto (24px) */}
         <div className="bg-gradient-to-r from-primary to-[#0088cc] p-6 text-primary-content flex items-center gap-6">
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="btn btn-circle btn-ghost text-white hover:bg-white/20"
           >
             <ArrowLeft size={24} />
           </button>
-          
+
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Editar Perfil</h2>
           </div>
@@ -87,7 +87,7 @@ export default function Profile() {
           </div>
 
           <form onSubmit={handleSalvar} className="flex flex-col gap-6">
-            
+
             {/* Informações Pessoais */}
             <div>
               <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2 border-b pb-2">
@@ -97,11 +97,11 @@ export default function Profile() {
                 <div className="form-control">
                   <label className="label font-medium text-gray-600">Nome Completo</label>
                   <div className="relative">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="input input-bordered w-full pl-10 focus:input-primary transition-all"
                       value={formData.nome}
-                      onChange={e => setFormData({...formData, nome: e.target.value})}
+                      onChange={e => setFormData({ ...formData, nome: e.target.value })}
                     />
                     <User className="absolute left-3 top-3 text-gray-400" size={18} />
                   </div>
@@ -109,11 +109,11 @@ export default function Profile() {
                 <div className="form-control">
                   <label className="label font-medium text-gray-600">Email</label>
                   <div className="relative">
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       className="input input-bordered w-full pl-10 focus:input-primary transition-all"
                       value={formData.email}
-                      onChange={e => setFormData({...formData, email: e.target.value})}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
                     />
                     <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
                   </div>
@@ -129,9 +129,9 @@ export default function Profile() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="form-control">
                   <label className="label font-medium text-gray-600">Função / Cargo</label>
-                  <input 
-                    type="text" 
-                    className="input input-bordered bg-gray-100 text-gray-500 font-medium cursor-not-allowed" 
+                  <input
+                    type="text"
+                    className="input input-bordered bg-gray-100 text-gray-500 font-medium cursor-not-allowed"
                     value={formData.perfil.charAt(0).toUpperCase() + formData.perfil.slice(1).toLowerCase()}
                     disabled
                   />
@@ -139,9 +139,9 @@ export default function Profile() {
                 {formData.ra && (
                   <div className="form-control">
                     <label className="label font-medium text-gray-600">RA (Registro Acadêmico)</label>
-                    <input 
-                      type="text" 
-                      className="input input-bordered bg-gray-100 text-gray-500 font-medium font-mono cursor-not-allowed" 
+                    <input
+                      type="text"
+                      className="input input-bordered bg-gray-100 text-gray-500 font-medium font-mono cursor-not-allowed"
                       value={formData.ra}
                       disabled
                     />
@@ -158,11 +158,11 @@ export default function Profile() {
               <div className="form-control">
                 <label className="label font-medium text-gray-600">Alterar Senha</label>
                 <div className="relative">
-                  <input 
+                  <input
                     type="password"
                     className="input input-bordered w-full pl-10 focus:input-primary transition-all font-mono tracking-widest"
                     value={formData.senha}
-                    onChange={e => setFormData({...formData, senha: e.target.value})}
+                    onChange={e => setFormData({ ...formData, senha: e.target.value })}
                     placeholder="••••••"
                   />
                   <KeyRound className="absolute left-3 top-3 text-gray-400" size={18} />
@@ -175,8 +175,8 @@ export default function Profile() {
 
             {/* Botão Salvar */}
             <div className="card-actions justify-end mt-8">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn btn-primary btn-wide text-lg normal-case gap-3 shadow-md hover:shadow-xl transition-all"
                 disabled={loading}
               >

@@ -1,3 +1,5 @@
+import StatusBadge from './StatusBadge';
+
 interface Presenca {
   logId: string;
   horario: string | Date;
@@ -11,7 +13,7 @@ interface AttendanceTableProps {
 }
 
 export default function AttendanceTable({ presencas, loading = false }: AttendanceTableProps) {
-  
+
   // Se estiver a carregar, mostra apenas o spinner
   if (loading) {
     return (
@@ -41,18 +43,19 @@ export default function AttendanceTable({ presencas, loading = false }: Attendan
               <td className="font-mono text-gray-500">{p.ra}</td>
               <td className="font-bold text-gray-700">{p.aluno}</td>
               <td>
-                <span className="badge badge-success badge-sm border-none text-white font-medium">
-                  Presente
-                </span>
+                <StatusBadge text="Presente" variant="success" size="sm" />
               </td>
             </tr>
           ))}
-          
-          {/* Estado Vazio: Quando ninguém marcou presença */}
-          {presencas.length === 0 && (
+
+          {!loading && presencas.length === 0 && (
             <tr>
-              <td colSpan={4} className="text-center py-10 text-gray-400">
-                Ninguém registrou presença hoje.
+              <td colSpan={4}>
+                <EmptyState
+                  message="Ninguém registrou presença hoje."
+                  icon={<UserX size={32} />}
+                  className="py-6" // Deixa um pouco menor dentro da tabela
+                />
               </td>
             </tr>
           )}
